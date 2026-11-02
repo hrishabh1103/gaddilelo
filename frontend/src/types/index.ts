@@ -105,6 +105,7 @@ export interface BuyingGroup {
   reference_ex_showroom?: number;
   is_current_user_member?: boolean;
   approved_quotations_count?: number;
+  category_slug?: string;
 }
 
 export interface Quotation {
