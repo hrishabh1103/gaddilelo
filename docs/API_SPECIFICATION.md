@@ -137,3 +137,4 @@ Base URL: `/api/v1`
 
 - `PUT /notifications/{id}/read`  
   Mark notification as read.
+

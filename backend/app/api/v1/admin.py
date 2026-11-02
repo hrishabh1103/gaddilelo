@@ -441,3 +441,4 @@ async def list_audit_logs(
 ):
     res = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(100))
     return res.scalars().all()
+

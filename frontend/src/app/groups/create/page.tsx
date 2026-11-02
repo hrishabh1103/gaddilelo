@@ -38,6 +38,7 @@ function CreateBuyingGroupForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // 1. Initial Load of Categories and Cities
   useEffect(() => {
     async function loadInitial() {
       try {
@@ -47,9 +48,14 @@ function CreateBuyingGroupForm() {
         ]);
         setCategories(cats || []);
         setCities(cts || []);
+
         if (cts?.length > 0) {
           const ind = cts.find(c => c.name.toLowerCase() === 'indore') || cts[0];
           setCityId(ind.id);
+        }
+
+        if (cats?.length > 0 && !categoryId) {
+          setCategoryId(cats[0].id);
         }
       } catch (e) {
         console.error(e);
@@ -60,50 +66,93 @@ function CreateBuyingGroupForm() {
     loadInitial();
   }, []);
 
-  // When category changes, load brands
+  // Pre-load if query params provided
+  useEffect(() => {
+    if (preselectedModelId) {
+      apiFetch<any>(`/catalog/models/${preselectedModelId}`).then((m) => {
+        if (m) {
+          if (m.brand_id) setBrandId(m.brand_id);
+          setModelId(m.id);
+          if (m.variants && m.variants.length > 0) {
+            setVariants(m.variants);
+            if (preselectedVariantId) {
+              setVariantId(preselectedVariantId);
+            } else {
+              setVariantId(m.variants[0].id);
+            }
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [preselectedModelId, preselectedVariantId]);
+
+  // 2. When Category changes, fetch Brands
   useEffect(() => {
     async function loadBrands() {
       if (!categoryId) return;
       try {
         const data = await apiFetch<VehicleBrand[]>(`/catalog/brands?category_id=${categoryId}`);
-        setBrands(data || []);
-        setBrandId('');
-        setModels([]);
-        setVariants([]);
+        if (data && data.length > 0) {
+          setBrands(data);
+          setBrandId(data[0].id);
+        } else {
+          // If no specific brand match, fetch all brands
+          const allBrands = await apiFetch<VehicleBrand[]>('/catalog/brands');
+          setBrands(allBrands || []);
+          if (allBrands && allBrands.length > 0) {
+            setBrandId(allBrands[0].id);
+          }
+        }
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load brands:', e);
       }
     }
     loadBrands();
   }, [categoryId]);
 
-  // When brand changes, load models
+  // 3. When Brand changes, fetch Models
   useEffect(() => {
     async function loadModels() {
       if (!brandId) return;
       try {
         const data = await apiFetch<VehicleModel[]>(`/catalog/models?brand_id=${brandId}`);
-        setModels(data || []);
-        setModelId('');
-        setVariants([]);
+        if (data && data.length > 0) {
+          setModels(data);
+          setModelId(data[0].id);
+        } else {
+          // Fallback to all models
+          const allModels = await apiFetch<VehicleModel[]>('/catalog/models');
+          setModels(allModels || []);
+          if (allModels && allModels.length > 0) {
+            setModelId(allModels[0].id);
+          }
+        }
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load models:', e);
       }
     }
     loadModels();
   }, [brandId]);
 
-  // When model changes, load variants
+  // 4. When Model changes, extract Variants
   useEffect(() => {
     if (!modelId) return;
     const m = models.find(mod => mod.id === modelId);
-    if (m?.variants) {
+    if (m?.variants && m.variants.length > 0) {
       setVariants(m.variants);
-      if (m.variants.length > 0 && !variantId) {
-        setVariantId(m.variants[0].id);
-      }
+      setVariantId(m.variants[0].id);
+    } else {
+      // Fetch model detail directly
+      apiFetch<any>(`/catalog/models/${modelId}`)
+        .then((mDetail) => {
+          if (mDetail?.variants?.length > 0) {
+            setVariants(mDetail.variants);
+            setVariantId(mDetail.variants[0].id);
+          }
+        })
+        .catch(() => {});
     }
-  }, [modelId, models, variantId]);
+  }, [modelId, models]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +228,6 @@ function CreateBuyingGroupForm() {
                 required
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
-                <option value="">Select category...</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -208,11 +256,10 @@ function CreateBuyingGroupForm() {
               <select
                 value={brandId}
                 onChange={(e) => setBrandId(e.target.value)}
-                disabled={!categoryId}
                 required
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none disabled:opacity-50"
+                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
-                <option value="">Select brand...</option>
+                {brands.length === 0 && <option value="">Loading brands...</option>}
                 {brands.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -224,11 +271,10 @@ function CreateBuyingGroupForm() {
               <select
                 value={modelId}
                 onChange={(e) => setModelId(e.target.value)}
-                disabled={!brandId}
                 required
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none disabled:opacity-50"
+                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
-                <option value="">Select model...</option>
+                {models.length === 0 && <option value="">Loading models...</option>}
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
@@ -242,11 +288,10 @@ function CreateBuyingGroupForm() {
             <select
               value={variantId}
               onChange={(e) => setVariantId(e.target.value)}
-              disabled={!modelId || variants.length === 0}
               required
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none disabled:opacity-50"
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
-              <option value="">Select variant...</option>
+              {variants.length === 0 && <option value="">Loading variants...</option>}
               {variants.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name} ({v.fuel_type} • {v.transmission} • Ex-showroom: ₹{Number(v.reference_ex_showroom).toLocaleString('en-IN')})
@@ -264,10 +309,10 @@ function CreateBuyingGroupForm() {
                 onChange={(e) => setTargetMembers(Number(e.target.value))}
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none"
               >
-                <option value={3}>3 Buyers (Fast bidding turnaround)</option>
+                <option value={3}>3 Buyers (Fast turnaround)</option>
                 <option value={5}>5 Buyers (Standard bulk tier - Recommended)</option>
                 <option value={10}>10 Buyers (High volume OEM maximum discount)</option>
-                <option value={15}>15 Buyers (Fleet / Commercial tier)</option>
+                <option value={15}>15 Buyers (Commercial & fleet tier)</option>
               </select>
             </div>
 

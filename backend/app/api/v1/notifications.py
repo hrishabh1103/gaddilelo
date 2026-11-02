@@ -51,3 +51,4 @@ async def mark_all_read(
     )
     await db.commit()
     return {"message": "All notifications marked as read"}
+

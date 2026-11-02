@@ -82,6 +82,19 @@ async def test_catalog_endpoints():
         cats = res_cats.json()
         assert len(cats) >= 5
 
+        # Brands
+        res_brands = await ac.get("/api/v1/catalog/brands")
+        assert res_brands.status_code == 200
+        brands = res_brands.json()
+        assert len(brands) >= 5
+        assert any(b["name"] == "Tata Motors" for b in brands)
+
+        # Brands by category
+        res_car_brands = await ac.get("/api/v1/catalog/brands?category_id=car")
+        assert res_car_brands.status_code == 200
+        car_brands = res_car_brands.json()
+        assert any(b["name"] == "Tata Motors" for b in car_brands)
+
         # Models
         res_models = await ac.get("/api/v1/catalog/models")
         assert res_models.status_code == 200

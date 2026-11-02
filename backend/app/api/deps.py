@@ -76,3 +76,4 @@ def require_role(allowed_roles: List[str]):
 require_buyer = require_role(["BUYER", "ADMIN"])
 require_dealer = require_role(["DEALER", "ADMIN"])
 require_admin = require_role(["ADMIN"])
+

@@ -307,3 +307,4 @@ CREATE POLICY quotations_visibility ON quotations
 -- 6. Notifications: Users can only see their own notifications
 CREATE POLICY notifications_owner ON notifications 
     FOR ALL USING (user_id = auth.uid());
+

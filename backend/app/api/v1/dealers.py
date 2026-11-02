@@ -173,7 +173,7 @@ async def submit_quotation(
     if not group:
         raise HTTPException(status_code=404, detail="Buying group not found")
 
-    if group.status != "BIDDING_OPEN":
+    if group.status not in ["BIDDING_OPEN", "OFFERS_AVAILABLE"]:
         raise HTTPException(
             status_code=400,
             detail=f"Bidding is not open for this group (Current status: {group.status})"
@@ -316,7 +316,7 @@ async def revise_quotation(
     if not quote:
         raise HTTPException(status_code=404, detail="Quotation not found")
 
-    if quote.group.status != "BIDDING_OPEN":
+    if quote.group.status not in ["BIDDING_OPEN", "OFFERS_AVAILABLE"]:
         raise HTTPException(
             status_code=400,
             detail=f"Cannot revise quotation. Group bidding is not open (status: {quote.group.status})"
@@ -554,3 +554,4 @@ async def update_lead_status(
         )
 
     return {"message": "Lead status updated successfully", "new_status": lead.status}
+

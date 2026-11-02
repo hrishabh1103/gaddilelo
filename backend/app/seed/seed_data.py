@@ -1,3 +1,15 @@
+import sys
+from pathlib import Path
+
+# Ensure project root and backend directory are in sys.path regardless of where script is invoked
+_file_path = Path(__file__).resolve()
+_project_root = _file_path.parents[3] # e.g. /Users/hrishabh/Car_Buy_Group
+_backend_dir = _file_path.parents[2]  # e.g. /Users/hrishabh/Car_Buy_Group/backend
+
+for _p in [str(_project_root), str(_backend_dir)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 import asyncio
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -497,3 +509,4 @@ async def seed_all():
 
 if __name__ == "__main__":
     asyncio.run(seed_all())
+

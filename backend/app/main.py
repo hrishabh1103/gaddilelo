@@ -21,10 +21,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware
+# CORS Middleware - allows any localhost or deployed origin seamlessly
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,3 +58,4 @@ async def root():
         "docs_url": "/docs",
         "pilot_market": f"{settings.DEFAULT_PILOT_CITY}, {settings.DEFAULT_STATE}"
     }
+

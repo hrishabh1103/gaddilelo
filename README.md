@@ -126,7 +126,7 @@ npm run dev
 ```
 Application will be live at: `http://localhost:3000`
 
----
+
 
 ## 6. Pre-Configured Demo Personas
 
@@ -170,3 +170,4 @@ For rapid testing and grading, 1-click persona switchers are built directly into
 ## 8. License
 
 Proprietary — Developed for GaadiLelo.com Indore Pilot Expansion.
+

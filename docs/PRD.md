@@ -70,3 +70,4 @@ GaadiLelo is built with a strictly **vehicle-agnostic engine** supporting:
 - **Security & Privacy:** Enforce strict RBAC at API level, parameterized queries via SQLAlchemy ORM, hashed passwords (bcrypt), and encrypted tokens.
 - **Scalability:** Monolithic architecture with separated domain services, stateless backend, async database operations, and CDN-ready Next.js frontend.
 - **Configurability:** Fully parametric branding (`BRAND_NAME`, `BRAND_TAGLINE`), tax regimes (GST, RTO slabs, TCS rules), and pilot market locations.
+

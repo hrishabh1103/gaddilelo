@@ -39,3 +39,4 @@ INSERT INTO vehicle_variants (id, model_id, name, fuel_type, transmission, seati
 ('v0000000-0000-0000-0000-000000000002', 'm0000000-0000-0000-0000-000000000002', 'VXi 1.5L Smart Hybrid', 'PETROL', 'MANUAL', 5, '1462 cc', 969000.00, '{"mileage": "19.89 kmpl", "power": "103 PS"}', TRUE),
 ('v0000000-0000-0000-0000-000000000003', 'm0000000-0000-0000-0000-000000000003', '450X 3.7 kWh Pro Pack', 'ELECTRIC', 'SINGLE_SPEED_EV', 2, '3.7 kWh', 154999.00, '{"true_range": "110 km", "top_speed": "90 kmph"}', TRUE)
 ON CONFLICT (id) DO NOTHING;
+

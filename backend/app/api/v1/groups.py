@@ -365,3 +365,4 @@ async def get_group_response_object(db: AsyncSession, group_id: str, current_use
         is_current_user_member=is_member,
         approved_quotations_count=0
     )
+

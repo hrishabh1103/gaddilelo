@@ -166,3 +166,4 @@ async def update_profile(
 
     await db.commit()
     return {"message": "Profile updated successfully"}
+

@@ -10,3 +10,4 @@ async def calculate_vehicle_pricing(payload: PricingCalculationRequest):
         return PricingEngine.calculate_pricing(payload)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+

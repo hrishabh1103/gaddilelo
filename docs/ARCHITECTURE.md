@@ -126,3 +126,4 @@ Three discrete security scopes:
    - Zero access to other dealerships' pending draft or internal margin details.
 3. **ADMIN:**
    - Full moderation access: verify dealers, approve/reject quotations, trigger bidding windows, update group states, manage catalogue, view system audit logs.
+

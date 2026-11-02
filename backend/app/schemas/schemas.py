@@ -125,7 +125,6 @@ class VehicleBrandResponse(BaseModel):
     name: str
     slug: str
     logo_url: Optional[str] = None
-    models: Optional[List[VehicleModelResponse]] = []
 
 class VehicleCategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -321,3 +320,4 @@ class AuditLogResponse(BaseModel):
     entity_id: str
     payload: Dict[str, Any]
     created_at: datetime
+

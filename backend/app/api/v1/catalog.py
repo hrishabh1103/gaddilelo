@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
@@ -33,7 +33,9 @@ async def list_brands(
 ):
     query = select(VehicleBrand).order_by(VehicleBrand.name)
     if category_id:
-        query = query.where(VehicleBrand.category_id == category_id)
+        query = query.join(VehicleCategory, VehicleBrand.category_id == VehicleCategory.id).where(
+            or_(VehicleBrand.category_id == category_id, VehicleCategory.slug == category_id)
+        )
     res = await db.execute(query)
     return res.scalars().all()
 
@@ -68,8 +70,8 @@ async def list_models(
     # Hydrate rich data
     output = []
     for m in models:
-        # Filter category if specified
-        if category_id and m.brand.category_id != category_id:
+        # Filter category if specified (accepts both UUID and slug)
+        if category_id and m.brand.category_id != category_id and m.brand.category.slug != category_id:
             continue
 
         # Filter fuel_type if specified
@@ -198,3 +200,4 @@ async def get_variant(id: str, db: AsyncSession = Depends(get_db)):
     if not v:
         raise HTTPException(status_code=404, detail="Variant not found")
     return v
+

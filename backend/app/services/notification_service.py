@@ -70,3 +70,4 @@ class NotificationService:
     def _dispatch_whatsapp(phone: str, body: str):
         # Ready for live integration (Meta Cloud WhatsApp API)
         logger.info(f"[WHATSAPP LIVE HOOK] Dispatching to {phone}")
+

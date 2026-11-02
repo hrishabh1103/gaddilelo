@@ -239,3 +239,4 @@ erDiagram
   - `payload`: JSONB DEFAULT '{}'.
   - `ip_address`: VARCHAR(45).
   - `created_at`: TIMESTAMPTZ DEFAULT NOW().
+
