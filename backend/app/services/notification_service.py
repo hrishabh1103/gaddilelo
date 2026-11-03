@@ -56,6 +56,27 @@ class NotificationService:
 
         return notification
 
+    @classmethod
+    async def create_notification(
+        cls,
+        user_id: str,
+        title: str,
+        message: str,
+        event_type: str,
+        link_url: Optional[str] = None,
+        db: Optional[AsyncSession] = None
+    ) -> Optional[Notification]:
+        if not db:
+            return None
+        return await cls.notify(
+            db=db,
+            user_id=user_id,
+            title=title,
+            message=message,
+            event_type=event_type,
+            link_url=link_url
+        )
+
     @staticmethod
     def _dispatch_sms(phone: str, text: str):
         # Ready for live integration (e.g. MSG91, Kaleyra, Twilio)

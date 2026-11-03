@@ -699,20 +699,25 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
-              { name: 'Tata Motors', models: 'Nexon, Harrier, Safari', query: 'Tata' },
+              { name: 'Tata Motors', models: 'Nexon, Punch, Harrier', query: 'Tata' },
               { name: 'Hyundai', models: 'Creta, Venue, Verna', query: 'Hyundai' },
-              { name: 'Maruti Suzuki', models: 'Brezza, Swift, Ertiga', query: 'Maruti' },
+              { name: 'Maruti Suzuki', models: 'Swift, Brezza, Baleno', query: 'Maruti' },
               { name: 'Mahindra', models: 'Scorpio-N, XUV700, Thar', query: 'Mahindra' },
+              { name: 'Honda', models: 'Elevate, City, Amaze', query: 'Honda' },
+              { name: 'Kia', models: 'Seltos, Sonet, Carens', query: 'Kia' },
+              { name: 'Toyota', models: 'Innova, Fortuner, Hycross', query: 'Toyota' },
+              { name: 'Royal Enfield', models: 'Hunter 350, Classic 350', query: 'Royal Enfield' },
+              { name: 'Hero MotoCorp', models: 'Splendor Plus, Karizma', query: 'Hero' },
+              { name: 'TVS Motor', models: 'Apache RTR, Jupiter, iQube', query: 'TVS' },
               { name: 'Ather Energy', models: '450X, Rizta EV', query: 'Ather' },
-              { name: 'Ola Electric', models: 'S1 Pro, S1 Air', query: 'Ola' },
-              { name: 'TVS Motor', models: 'iQube EV, Raider, Apache', query: 'TVS' },
-              { name: 'Ashok Leyland', models: 'Bada Dost, Dost+', query: 'Ashok' },
+              { name: 'Ashok Leyland', models: 'Dost, Bada Dost i4', query: 'Ashok' },
             ].map((brand) => (
               <Link
                 key={brand.name}
                 href={`/vehicles?search=${encodeURIComponent(brand.query)}`}
+                prefetch={false}
                 className="p-3 bg-slate-50 hover:bg-orange-50/60 border border-slate-200 hover:border-brand-300 rounded-xl transition-all text-center group flex flex-col justify-center items-center"
               >
                 <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-black text-xs text-navy-950 group-hover:text-brand-600 transition-colors mb-1.5 shadow-xs">

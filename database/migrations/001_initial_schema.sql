@@ -8,19 +8,45 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ENUMS
-CREATE TYPE user_role_enum AS ENUM ('BUYER', 'DEALER', 'ADMIN');
-CREATE TYPE dealer_verification_enum AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
-CREATE TYPE document_type_enum AS ENUM ('GST_CERTIFICATE', 'OEM_DEALERSHIP_AGREEMENT', 'PAN_CARD', 'TRADE_LICENSE', 'BANK_PROOF');
-CREATE TYPE fuel_type_enum AS ENUM ('PETROL', 'DIESEL', 'CNG', 'ELECTRIC', 'HYBRID');
-CREATE TYPE transmission_enum AS ENUM ('MANUAL', 'AUTOMATIC', 'AMT', 'CVT', 'DCT', 'SINGLE_SPEED_EV');
-CREATE TYPE group_status_enum AS ENUM ('DRAFT', 'OPEN', 'QUALIFYING', 'READY_FOR_BIDDING', 'BIDDING_OPEN', 'OFFERS_AVAILABLE', 'COMPLETED', 'CANCELLED');
-CREATE TYPE member_status_enum AS ENUM ('ACTIVE', 'QUALIFIED', 'WITHDRAWN', 'PURCHASED');
-CREATE TYPE invitation_status_enum AS ENUM ('INVITED', 'ACCEPTED', 'DECLINED', 'SUBMITTED');
-CREATE TYPE quotation_status_enum AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'SUPERSEDED');
-CREATE TYPE line_item_type_enum AS ENUM ('MANDATORY', 'OPTIONAL', 'COMPLIMENTARY', 'DISCOUNT');
-CREATE TYPE lead_status_enum AS ENUM ('PENDING_CALLBACK', 'CONTACTED', 'TEST_DRIVE_SCHEDULED', 'BOOKING_IN_PROGRESS', 'PURCHASE_COMPLETED', 'LOST');
-CREATE TYPE complaint_status_enum AS ENUM ('OPEN', 'INVESTIGATING', 'RESOLVED', 'DISMISSED');
+-- ENUMS (Idempotent creation)
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role_enum') THEN
+        CREATE TYPE user_role_enum AS ENUM ('BUYER', 'DEALER', 'ADMIN');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dealer_verification_enum') THEN
+        CREATE TYPE dealer_verification_enum AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'document_type_enum') THEN
+        CREATE TYPE document_type_enum AS ENUM ('GST_CERTIFICATE', 'OEM_DEALERSHIP_AGREEMENT', 'PAN_CARD', 'TRADE_LICENSE', 'BANK_PROOF');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'fuel_type_enum') THEN
+        CREATE TYPE fuel_type_enum AS ENUM ('PETROL', 'DIESEL', 'CNG', 'ELECTRIC', 'HYBRID');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transmission_enum') THEN
+        CREATE TYPE transmission_enum AS ENUM ('MANUAL', 'AUTOMATIC', 'AMT', 'CVT', 'DCT', 'SINGLE_SPEED_EV');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'group_status_enum') THEN
+        CREATE TYPE group_status_enum AS ENUM ('DRAFT', 'OPEN', 'QUALIFYING', 'READY_FOR_BIDDING', 'BIDDING_OPEN', 'OFFERS_AVAILABLE', 'COMPLETED', 'CANCELLED');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'member_status_enum') THEN
+        CREATE TYPE member_status_enum AS ENUM ('ACTIVE', 'QUALIFIED', 'WITHDRAWN', 'PURCHASED');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invitation_status_enum') THEN
+        CREATE TYPE invitation_status_enum AS ENUM ('INVITED', 'ACCEPTED', 'DECLINED', 'SUBMITTED');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'quotation_status_enum') THEN
+        CREATE TYPE quotation_status_enum AS ENUM ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'SUPERSEDED');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'line_item_type_enum') THEN
+        CREATE TYPE line_item_type_enum AS ENUM ('MANDATORY', 'OPTIONAL', 'COMPLIMENTARY', 'DISCOUNT');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'lead_status_enum') THEN
+        CREATE TYPE lead_status_enum AS ENUM ('PENDING_CALLBACK', 'CONTACTED', 'TEST_DRIVE_SCHEDULED', 'BOOKING_IN_PROGRESS', 'PURCHASE_COMPLETED', 'LOST');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'complaint_status_enum') THEN
+        CREATE TYPE complaint_status_enum AS ENUM ('OPEN', 'INVESTIGATING', 'RESOLVED', 'DISMISSED');
+    END IF;
+END $$;
 
 -- 1. CITIES TABLE
 CREATE TABLE IF NOT EXISTS cities (
@@ -281,30 +307,39 @@ ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE buyer_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
--- 1. Users can read and update their own record
-CREATE POLICY users_self_access ON users 
-    FOR ALL USING (id = auth.uid());
+-- Supabase Row Level Security Policies (Idempotent creation)
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_self_access' AND tablename = 'users') THEN
+        CREATE POLICY users_self_access ON users 
+            FOR ALL USING (id = auth.uid());
+    END IF;
 
--- 2. User profiles self access, Admin full access
-CREATE POLICY profiles_self_access ON user_profiles 
-    FOR ALL USING (user_id = auth.uid());
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'profiles_self_access' AND tablename = 'user_profiles') THEN
+        CREATE POLICY profiles_self_access ON user_profiles 
+            FOR ALL USING (user_id = auth.uid());
+    END IF;
 
--- 3. Dealers can read and update their own dealership profile
-CREATE POLICY dealers_owner_access ON dealers 
-    FOR ALL USING (user_id = auth.uid());
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'dealers_owner_access' AND tablename = 'dealers') THEN
+        CREATE POLICY dealers_owner_access ON dealers 
+            FOR ALL USING (user_id = auth.uid());
+    END IF;
 
--- 4. Buying groups: Everyone can view OPEN / QUALIFYING / BIDDING / OFFERS groups
-CREATE POLICY groups_public_read ON buying_groups 
-    FOR SELECT USING (status != 'DRAFT' OR created_by_user_id = auth.uid());
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'groups_public_read' AND tablename = 'buying_groups') THEN
+        CREATE POLICY groups_public_read ON buying_groups 
+            FOR SELECT USING (status != 'DRAFT' OR created_by_user_id = auth.uid());
+    END IF;
 
--- 5. Quotations: Only approved quotations visible to buyers; dealers can see their own quotations
-CREATE POLICY quotations_visibility ON quotations 
-    FOR SELECT USING (
-        status = 'APPROVED' 
-        OR dealer_id IN (SELECT id FROM dealers WHERE user_id = auth.uid())
-    );
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'quotations_visibility' AND tablename = 'quotations') THEN
+        CREATE POLICY quotations_visibility ON quotations 
+            FOR SELECT USING (
+                status = 'APPROVED' 
+                OR dealer_id IN (SELECT id FROM dealers WHERE user_id = auth.uid())
+            );
+    END IF;
 
--- 6. Notifications: Users can only see their own notifications
-CREATE POLICY notifications_owner ON notifications 
-    FOR ALL USING (user_id = auth.uid());
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'notifications_owner' AND tablename = 'notifications') THEN
+        CREATE POLICY notifications_owner ON notifications 
+            FOR ALL USING (user_id = auth.uid());
+    END IF;
+END $$;
 

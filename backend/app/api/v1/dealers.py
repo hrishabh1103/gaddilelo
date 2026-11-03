@@ -307,6 +307,12 @@ async def revise_quotation(
     if not dealer:
         raise HTTPException(status_code=400, detail="Dealer profile not found")
 
+    if dealer.verification_status != "VERIFIED":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dealership verification is pending or rejected. Only verified dealers can revise quotations."
+        )
+
     res = await db.execute(
         select(Quotation)
         .options(selectinload(Quotation.group))

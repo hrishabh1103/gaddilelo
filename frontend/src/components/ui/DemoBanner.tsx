@@ -5,7 +5,12 @@ import { useAuth } from '@/context/AuthContext';
 import { Shield, UserCheck, Building2, LogOut } from 'lucide-react';
 
 export default function DemoBanner() {
+  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
   const { user, quickLoginDemo, logout } = useAuth();
+
+  if (!isDemo) {
+    return null;
+  }
 
   return (
     <div className="bg-navy-900 border-b border-navy-800 text-xs text-navy-300 py-1.5 px-4">

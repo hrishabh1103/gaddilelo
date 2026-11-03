@@ -24,6 +24,12 @@ export default function GroupDetailPage() {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState('');
 
+  // Buyer Intent Confirmation State (Requirement 6)
+  const [showIntentModal, setShowIntentModal] = useState(false);
+  const [intentGenuine, setIntentGenuine] = useState(true);
+  const [intentNonBinding, setIntentNonBinding] = useState(true);
+  const [intentContactAgreed, setIntentContactAgreed] = useState(true);
+
   useEffect(() => {
     async function loadGroupData() {
       try {
@@ -47,12 +53,26 @@ export default function GroupDetailPage() {
       router.push(`/login?redirect=/groups/${id}`);
       return;
     }
+    setShowIntentModal(true);
+  };
+
+  const executeJoinWithIntent = async () => {
     setActionLoading(true);
     setFeedback('');
     try {
-      await apiFetch(`/groups/${id}/join`, { method: 'POST' });
+      await apiFetch(`/groups/${id}/join`, {
+        method: 'POST',
+        body: JSON.stringify({
+          buyer_intent: {
+            purchase_timeline: group?.target_purchase_timeline || 'WITHIN_30_DAYS',
+            is_genuine_intent: intentGenuine,
+            is_non_binding_acknowledged: intentNonBinding,
+            agreed_to_contact: intentContactAgreed
+          }
+        })
+      });
+      setShowIntentModal(false);
       setFeedback('Successfully joined group!');
-      // Reload group data
       const gData = await apiFetch(`/groups/${id}`);
       setGroup(gData);
     } catch (err: any) {
@@ -318,6 +338,110 @@ export default function GroupDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Buyer Intent Confirmation Modal (Requirement 6) */}
+      {showIntentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white max-w-lg w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
+            
+            <div className="text-center space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Indore Pilot • Buyer Intent Affirmation</span>
+              </div>
+              <h2 className="text-xl font-black text-navy-950">
+                Confirm Your Buying Interest
+              </h2>
+              <p className="text-xs text-slate-500">
+                You are joining cohort #{group.group_code}. Dealerships compete with binding wholesale quotes based on verified cohort demand.
+              </p>
+            </div>
+
+            {/* Group Summary Card */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Vehicle:</span>
+                <span className="font-bold text-navy-950">
+                  {group.vehicle.brand_name} {group.vehicle.model_name}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Variant / Trim:</span>
+                <span className="font-semibold text-slate-800">{group.vehicle.variant_name}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Pilot City:</span>
+                <span className="font-semibold text-slate-800">{group.city_name}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500">Target Cohort Progress:</span>
+                <span className="font-bold text-brand-600">{group.current_members_count}/{group.target_members} Members</span>
+              </div>
+            </div>
+
+            {/* Checkbox Declarations */}
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={intentGenuine}
+                  onChange={(e) => setIntentGenuine(e.target.checked)}
+                  className="mt-0.5 rounded text-brand-600 focus:ring-brand-500"
+                />
+                <span className="text-xs text-slate-700 leading-relaxed">
+                  <strong>Genuine Buying Intent:</strong> I am genuinely interested in purchasing this vehicle within {group.target_purchase_timeline.replace('_', ' ').toLowerCase()}.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={intentNonBinding}
+                  onChange={(e) => setIntentNonBinding(e.target.checked)}
+                  className="mt-0.5 rounded text-brand-600 focus:ring-brand-500"
+                />
+                <span className="text-xs text-slate-700 leading-relaxed">
+                  <strong>100% Free & Non-Binding:</strong> Joining this cohort is free with zero commitment until I choose to accept an authorized dealership quote.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={intentContactAgreed}
+                  onChange={(e) => setIntentContactAgreed(e.target.checked)}
+                  className="mt-0.5 rounded text-brand-600 focus:ring-brand-500"
+                />
+                <span className="text-xs text-slate-700 leading-relaxed">
+                  <strong>Direct Quotations & Privacy:</strong> I agree to receive verified dealership quotation updates. My phone number and email remain shielded from other cohort members.
+                </span>
+              </label>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowIntentModal(false)}
+                disabled={actionLoading}
+                className="w-1/3 py-3 border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeJoinWithIntent}
+                disabled={actionLoading || !intentGenuine || !intentNonBinding || !intentContactAgreed}
+                className="w-2/3 py-3 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white font-bold text-xs rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2"
+              >
+                {actionLoading ? 'Joining...' : 'Confirm & Join Cohort'}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

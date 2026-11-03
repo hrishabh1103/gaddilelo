@@ -13,7 +13,7 @@ Buyers compare competing offers side-by-side, inspect itemized statutory costs a
 
 ### Supported Vehicle Categories:
 - **Two-Wheelers:** Commuter & Performance Motorcycles, Scooters.
-- **Electric Vehicles:** Electric Scooters (Ather, Ola), Electric Cars (Tata Nexon EV).
+- **Electric Vehicles:** Electric Scooters (Ather, Ola), Electric Cars (Tata Nexon EV, Mahindra BE 6e).
 - **Passenger Cars:** Hatchbacks, Sedans, Compact & Mid-size SUVs (Tata Nexon, Maruti Brezza, Mahindra Scorpio-N).
 - **Commercial Vehicles:** Pickups, Small Commercial Vehicles (Ashok Leyland Bada Dost), Trucks, Buses.
 - **Three-Wheelers:** Passenger & Cargo Auto-rickshaws.
@@ -22,11 +22,12 @@ Buyers compare competing offers side-by-side, inspect itemized statutory costs a
 
 ## 2. Core Architectural Highlights
 
-1. **Modular Monolithic Architecture:** Clear domain service boundaries (`auth`, `catalog`, `groups`, `dealers`, `leads`, `pricing`, `admin`, `notifications`) without premature microservice complexity.
-2. **Vehicle-Agnostic Pricing Engine:** Mathematical pricing formulation without hardcoded automobile assumptions. Handles configurable statutory TCS (1% > ₹10 Lakhs in India), state RTO slabs, comprehensive insurance, and strictly validates discounts to eliminate double-counting and negative dealer margins.
-3. **Strict Buyer Privacy Shield:** Group members never see other buyers' PII (names, phone numbers, emails). Contact information is exclusively forwarded to an authorized dealer upon explicit, consent-based callback request.
-4. **Transparent Revision History:** Dealerships can adjust quotations before bidding closures while archiving snapshot histories for auditability.
-5. **Indore Pilot Ready:** Pre-seeded with authentic Indore dealerships (Sanghi Brothers Tata, Patel Motors Maruti Arena, Shreeji Mahindra) and high-demand Indian vehicle variants.
+1. **Modular Monolithic Architecture:** Clear domain service boundaries (`auth`, `catalog`, `groups`, `dealers`, `leads`, `pricing`, `admin`, `notifications`, `vehicle_intelligence`) without premature microservice complexity.
+2. **Vehicle Intelligence & Automated Discovery Engine:** CarDekho-style discovery and specification engine with multi-source OEM adapters, AI specification extraction, unit normalization, plausibility checks, price change tracking, and customer-triggered zero-search discovery.
+3. **Vehicle-Agnostic Pricing Engine:** Mathematical pricing formulation without hardcoded automobile assumptions. Handles configurable statutory TCS (1% > ₹10 Lakhs in India), state RTO slabs, comprehensive insurance, and strictly validates discounts to eliminate double-counting and negative dealer margins.
+4. **Strict Buyer Privacy Shield:** Group members never see other buyers' PII (names, phone numbers, emails). Contact information is exclusively forwarded to an authorized dealer upon explicit, consent-based callback request.
+5. **Transparent Revision History:** Dealerships can adjust quotations before bidding closures while archiving snapshot histories for auditability.
+6. **Indore Pilot Ready:** Pre-seeded with authentic Indore dealerships (Sanghi Brothers Tata, Patel Motors Maruti Arena, Shreeji Mahindra) and high-demand Indian vehicle variants.
 
 ---
 
@@ -74,7 +75,10 @@ Car_Buy_Group/
 │   ├── PRD.md                       # Comprehensive Product Requirements Document
 │   ├── ARCHITECTURE.md              # System design, state machine, & sequence diagrams
 │   ├── DATABASE.md                  # Relational schema specification & table definitions
-│   └── API_SPECIFICATION.md         # RESTful API endpoint contract
+│   ├── API_SPECIFICATION.md         # RESTful API endpoint contract
+│   ├── VEHICLE_INTELLIGENCE.md      # Vehicle Intelligence & discovery engine architecture
+│   ├── DATA_SOURCE_POLICY.md        # Data collection ethics, rate limits & OEM compliance
+│   └── DISCOVERY_API.md             # REST API for intelligence, queue & review
 ├── infrastructure/
 │   ├── Dockerfile.backend
 │   ├── Dockerfile.frontend
@@ -164,6 +168,12 @@ For rapid testing and grading, 1-click persona switchers are built directly into
    - Dispatch invitations to all verified dealerships in the pilot market.
    - Review and approve submitted quotations to publish them to buyers.
    - Inspect tamper-evident audit logs.
+
+4. **Vehicle Intelligence & Automated Discovery:**
+   - **Customer Zero-Search Discovery:** When a search returns 0 matches in `/vehicles`, buyers can submit on-demand vehicle discovery requests and get notified upon admin approval.
+   - **Multi-Source Ingestion & AI Extraction:** Pluggable OEM press adapters, normalized unit conversions (Lakh/Cr to INR, kW/BHP to PS, lb-ft to Nm), and physical plausibility validation.
+   - **Deduplication & Change Auditing:** Automatically detects matching vehicles and tracks price revisions in `VehiclePriceHistory` and `VehicleUpdateHistory`.
+   - **Admin Review Queue & Publication:** Complete review dossier at `/admin/intelligence/review/[id]` allowing 1-click publishing of new brands, models, and variants directly into the live buying group catalog.
 
 ---
 

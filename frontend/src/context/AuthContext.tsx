@@ -73,14 +73,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('gaadilelo_token');
-    localStorage.removeItem('gaadilelo_user');
+  const logout = async () => {
+    try {
+      if (token) {
+        await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+      }
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('gaadilelo_token');
+      localStorage.removeItem('gaadilelo_user');
+    }
   };
 
   const quickLoginDemo = async (role: UserRole) => {
+    if (process.env.NEXT_PUBLIC_DEMO_MODE !== 'true') {
+      console.warn('Demo login is disabled when NEXT_PUBLIC_DEMO_MODE is not true.');
+      return;
+    }
     let email = 'rahul.sharma@gmail.com';
     let password = 'Buyer@123';
 

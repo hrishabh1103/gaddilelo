@@ -72,6 +72,12 @@ function LoginForm() {
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <label className="text-xs font-bold text-slate-700">Password</label>
+              <Link
+                href="/forgot-password"
+                className="text-[11px] font-semibold text-brand-600 hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
             <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-brand-500">
               <Lock className="w-4 h-4 text-slate-400" />
@@ -96,44 +102,46 @@ function LoginForm() {
           </button>
         </form>
 
-        {/* 1-Click Demo Persona Fill */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-            Or 1-Click Demo Sign In:
-          </span>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                await quickLoginDemo('BUYER');
-                router.push('/dashboard');
-              }}
-              className="p-2 bg-orange-50 hover:bg-orange-100 text-brand-700 rounded-xl text-[11px] font-bold transition-colors text-center"
-            >
-              Buyer
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await quickLoginDemo('DEALER');
-                router.push('/dealer/dashboard');
-              }}
-              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-[11px] font-bold transition-colors text-center"
-            >
-              Dealer
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await quickLoginDemo('ADMIN');
-                router.push('/admin');
-              }}
-              className="p-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-[11px] font-bold transition-colors text-center"
-            >
-              Admin
-            </button>
+        {/* Optional Demo Persona Fill (Gated by NEXT_PUBLIC_DEMO_MODE) */}
+        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+              Or 1-Click Demo Sign In:
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  await quickLoginDemo('BUYER');
+                  router.push(redirect !== '/dashboard' ? redirect : '/dashboard');
+                }}
+                className="p-2 bg-orange-50 hover:bg-orange-100 text-brand-700 rounded-xl text-[11px] font-bold transition-colors text-center"
+              >
+                Buyer
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await quickLoginDemo('DEALER');
+                  router.push('/dealer/dashboard');
+                }}
+                className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-[11px] font-bold transition-colors text-center"
+              >
+                Dealer
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await quickLoginDemo('ADMIN');
+                  router.push('/admin');
+                }}
+                className="p-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-[11px] font-bold transition-colors text-center"
+              >
+                Admin
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="text-center text-xs text-slate-500">
           Don&apos;t have an account?{' '}

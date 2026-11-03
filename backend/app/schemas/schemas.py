@@ -25,6 +25,16 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -138,12 +148,34 @@ class VehicleCategoryResponse(BaseModel):
 # -----------------
 # 4. BUYING GROUPS
 # -----------------
+class BuyerIntentPayload(BaseModel):
+    purchase_timeline: str = Field(default="WITHIN_30_DAYS")
+    is_genuine_intent: bool = Field(default=True)
+    is_non_binding_acknowledged: bool = Field(default=True)
+    agreed_to_contact: bool = Field(default=True)
+
+class JoinGroupRequest(BaseModel):
+    notes: Optional[str] = None
+    buyer_intent: Optional[BuyerIntentPayload] = None
+
 class BuyingGroupCreate(BaseModel):
-    vehicle_variant_id: str
+    vehicle_variant_id: Optional[str] = None
     city_id: str
     target_members: int = Field(default=5, ge=2, le=50)
     target_purchase_timeline: str = Field(pattern="^(WITHIN_15_DAYS|WITHIN_30_DAYS|WITHIN_60_DAYS)$")
     additional_notes: Optional[str] = None
+
+    # Buyer Intent Affirmation (Requirement 6)
+    buyer_intent: Optional[BuyerIntentPayload] = None
+
+    # Custom Vehicle parameters for automated internet discovery
+    custom_brand_name: Optional[str] = None
+    custom_model_name: Optional[str] = None
+    custom_variant_name: Optional[str] = None
+    custom_fuel_type: Optional[str] = None
+    custom_body_type: Optional[str] = None
+    category_id: Optional[str] = None
+    estimated_price: Optional[float] = None
 
 class BuyingGroupResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -320,4 +352,164 @@ class AuditLogResponse(BaseModel):
     entity_id: str
     payload: Dict[str, Any]
     created_at: datetime
+
+
+# -----------------
+# 8. VEHICLE INTELLIGENCE & DISCOVERY ENGINE
+# -----------------
+
+class VehicleFieldCitation(BaseModel):
+    value: Any
+    unit: Optional[str] = None
+    source_url: str
+    source_name: str
+    confidence: float = 1.0
+    is_verified: bool = False
+
+class ExtractedVariantSchema(BaseModel):
+    variant_name: str
+    fuel_type: str
+    transmission: str
+    reference_ex_showroom: Decimal
+    seating_capacity: Optional[int] = 5
+    engine_cc_or_battery_kwh: Optional[str] = None
+    specifications: Optional[Dict[str, Any]] = {}
+
+class ExtractedVehicleData(BaseModel):
+    brand_name: str
+    model_name: str
+    category_slug: str = "car"
+    body_type: str = "SUV"
+    model_year: Optional[int] = 2026
+    launch_status: str = "LAUNCHED" # ANNOUNCED, LAUNCHED, UPCOMING, FACELIFT
+    reference_ex_showroom_min: Decimal
+    reference_ex_showroom_max: Decimal
+    variants: List[ExtractedVariantSchema]
+    image_urls: List[str] = []
+    source_url: str
+    source_name: str
+    confidence_score: float = 0.95
+    conflicts: Optional[List[str]] = []
+
+class CustomerDiscoveryRequest(BaseModel):
+    search_query: str = Field(min_length=2, max_length=200)
+    category_slug: Optional[str] = "car"
+    customer_name: str = Field(min_length=2)
+    customer_email: EmailStr
+    customer_phone: Optional[str] = None
+    target_city_id: Optional[str] = None
+
+class VehicleDiscoveryJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    search_query: str
+    job_type: str
+    status: str
+    error_message: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    records_count: Optional[int] = 0
+
+class VehicleDiscoveryRecordResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    job_id: Optional[str] = None
+    discovered_brand: str
+    discovered_model: str
+    category_slug: str
+    body_type: str
+    launch_status: str
+    model_year: Optional[int] = None
+    reference_ex_showroom_min: Optional[Decimal] = None
+    reference_ex_showroom_max: Optional[Decimal] = None
+    confidence_score: Decimal
+    review_status: str
+    primary_source_url: Optional[str] = None
+    primary_source_name: Optional[str] = None
+    published_model_id: Optional[str] = None
+    created_at: datetime
+
+class VehicleDiscoveryRecordDetail(VehicleDiscoveryRecordResponse):
+    extracted_data: Dict[str, Any]
+    admin_notes: Optional[str] = None
+    subscribers_count: Optional[int] = 0
+    spec_sources: Optional[List[Dict[str, Any]]] = []
+    price_histories: Optional[List[Dict[str, Any]]] = []
+    images: Optional[List[Dict[str, Any]]] = []
+
+class VehicleDiscoveryApprovalRequest(BaseModel):
+    admin_notes: Optional[str] = None
+    brand_id: Optional[str] = None # existing or auto-create if empty
+    modified_brand: Optional[str] = None
+    modified_model: Optional[str] = None
+    modified_body_type: Optional[str] = None
+    category_slug: Optional[str] = None
+    approved_variants: Optional[List[Dict[str, Any]]] = None
+
+class VehicleDataSourceCreate(BaseModel):
+    source_name: str
+    source_url: str
+    source_type: str # MANUFACTURER_WEBSITE, PRESS_RELEASE, LICENSED_API, PUBLIC_PORTAL
+    access_method: str = "RSS_FEED" # RSS_FEED, REST_API, SITEMAP, MANUAL
+    licensing_status: str = "OFFICIAL_PUBLIC"
+    enabled: bool = True
+    update_frequency: str = "DAILY"
+
+class VehicleDataSourceUpdate(BaseModel):
+    source_name: Optional[str] = None
+    source_url: Optional[str] = None
+    source_type: Optional[str] = None
+    access_method: Optional[str] = None
+    licensing_status: Optional[str] = None
+    enabled: Optional[bool] = None
+    update_frequency: Optional[str] = None
+
+class VehicleDataSourceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    source_name: str
+    source_url: str
+    source_type: str
+    access_method: str
+    licensing_status: str
+    enabled: bool
+    update_frequency: str
+    last_synced_at: Optional[datetime] = None
+    last_error: Optional[str] = None
+    created_at: datetime
+
+class VehicleIntelligenceOverviewStats(BaseModel):
+    total_discovered_vehicles: int
+    pending_review_count: int
+    approved_count: int
+    rejected_count: int
+    active_sources_count: int
+    failed_jobs_count: int
+    total_customer_discovery_requests: int
+
+class VehiclePriceHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    vehicle_variant_id: Optional[str] = None
+    city_name: Optional[str] = None
+    price_type: str
+    amount: Decimal
+    currency: str
+    source_url: Optional[str] = None
+    source_name: Optional[str] = None
+    effective_from: datetime
+    created_at: datetime
+
+class VehicleUpdateHistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    vehicle_model_id: Optional[str] = None
+    model_name: Optional[str] = None
+    change_type: str
+    previous_data: Optional[Dict[str, Any]] = None
+    new_data: Optional[Dict[str, Any]] = None
+    source_url: Optional[str] = None
+    source_name: Optional[str] = None
+    changed_at: datetime
+
 

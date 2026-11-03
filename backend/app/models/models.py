@@ -128,6 +128,11 @@ class VehicleBrand(Base):
     category_id = Column(String(36), ForeignKey("vehicle_categories.id"), nullable=False)
     name = Column(String(100), nullable=False)
     slug = Column(String(100), unique=True, nullable=False)
+    canonical_name = Column(String(100), nullable=True)
+    external_source_id = Column(String(100), nullable=True)
+    source_name = Column(String(50), default="meterapp", nullable=True)
+    source_license = Column(String(50), default="ISC", nullable=True)
+    country = Column(String(50), default="India", nullable=True)
     logo_url = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
@@ -142,13 +147,33 @@ class VehicleModel(Base):
     brand_id = Column(String(36), ForeignKey("vehicle_brands.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(150), nullable=False)
     slug = Column(String(150), unique=True, nullable=False)
+    canonical_brand_name = Column(String(100), nullable=True)
+    canonical_model_name = Column(String(150), nullable=True)
+    vehicle_category_slug = Column(String(50), nullable=True)
+    external_source_id = Column(String(100), nullable=True)
+    source_name = Column(String(50), default="meterapp", nullable=True)
+    source_license = Column(String(50), default="ISC", nullable=True)
+    source_provenance = Column(JSON, default=dict, nullable=True)
+    imported_at = Column(DateTime, nullable=True)
     body_type = Column(String(50), nullable=False)
+    generation = Column(String(50), nullable=True) # e.g. "Gen 2", "Facelift"
+    model_year = Column(Integer, nullable=True)
+    wikidata_id = Column(String(50), nullable=True) # e.g. "Q44954468"
+    length_mm = Column(Integer, nullable=True)
+    width_mm = Column(Integer, nullable=True)
+    height_mm = Column(Integer, nullable=True)
+    wheelbase_mm = Column(Integer, nullable=True)
+    ground_clearance_mm = Column(Integer, nullable=True)
+    safety_rating_stars = Column(Integer, nullable=True) # 0-5
+    safety_rating_agency = Column(String(50), nullable=True) # BHARAT_NCAP, GLOBAL_NCAP
     image_url = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
+    last_verified_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
     brand = relationship("VehicleBrand", back_populates="models")
     variants = relationship("VehicleVariant", back_populates="model", cascade="all, delete-orphan")
+    images = relationship("VehicleImage", back_populates="model", cascade="all, delete-orphan")
 
 
 class VehicleVariant(Base):
@@ -161,13 +186,27 @@ class VehicleVariant(Base):
     transmission = Column(String(30), nullable=False) # MANUAL, AUTOMATIC, AMT, CVT, DCT, SINGLE_SPEED_EV
     seating_capacity = Column(Integer, default=5)
     engine_cc_or_battery_kwh = Column(String(50), nullable=True)
+    engine_displacement_cc = Column(Integer, nullable=True)
+    battery_capacity_kwh = Column(Numeric(5, 1), nullable=True)
+    claimed_range_km = Column(Numeric(6, 1), nullable=True) # ARAI / MIDC / IDC claimed
+    tested_range_km = Column(Numeric(6, 1), nullable=True) # Independently tested / TrueRange
+    real_world_range_km = Column(Numeric(6, 1), nullable=True)
+    claimed_mileage_kmpl = Column(Numeric(5, 2), nullable=True)
     reference_ex_showroom = Column(Numeric(12, 2), nullable=False)
+    source_priority = Column(Integer, default=1) # 1: OEM Spec, 2: Brochure, 3: Gov Open Data, 4: Wikidata/Open
+    data_source_id = Column(String(36), ForeignKey("vehicle_data_sources.id", ondelete="SET NULL"), nullable=True)
+    source_url = Column(Text, nullable=True)
+    source_document = Column(String(200), nullable=True)
+    confidence_score = Column(Numeric(3, 2), default=1.0, nullable=True)
+    review_status = Column(String(30), default="VERIFIED", nullable=True) # VERIFIED, PENDING_REVIEW, ADMIN_REVIEW
     specifications = Column(JSON, default=dict)
     is_active = Column(Boolean, default=True)
+    last_verified_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
     model = relationship("VehicleModel", back_populates="variants")
     buying_groups = relationship("BuyingGroup", back_populates="variant")
+    data_source = relationship("VehicleDataSource")
 
 
 # 5. BUYING GROUPS & MEMBERS
@@ -206,10 +245,56 @@ class GroupMember(Base):
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     buyer_notes = Column(Text, nullable=True)
     status = Column(String(30), default="ACTIVE") # ACTIVE, QUALIFIED, WITHDRAWN, PURCHASED
+    intent_confirmed = Column(Boolean, default=True)
+    intent_confirmed_at = Column(DateTime, default=utc_now)
     joined_at = Column(DateTime, default=utc_now)
 
     group = relationship("BuyingGroup", back_populates="members")
     user = relationship("User", back_populates="group_memberships")
+
+
+class BuyerIntentConfirmation(Base):
+    __tablename__ = "buyer_intent_confirmations"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    purchase_timeline = Column(String(50), nullable=False) # IMMEDIATELY, WITHIN_15_DAYS, WITHIN_30_DAYS, WITHIN_60_DAYS, FLEXIBLE
+    is_genuine_intent = Column(Boolean, default=True, nullable=False)
+    is_non_binding_acknowledged = Column(Boolean, default=True, nullable=False)
+    agreed_to_contact = Column(Boolean, default=True, nullable=False)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    confirmed_at = Column(DateTime, default=utc_now)
+
+    group = relationship("BuyingGroup")
+    user = relationship("User")
+
+
+class AuthToken(Base):
+    __tablename__ = "auth_tokens"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token_type = Column(String(50), nullable=False) # PASSWORD_RESET, EMAIL_VERIFICATION
+    token_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    user = relationship("User")
+
+
+class RevokedToken(Base):
+    __tablename__ = "revoked_tokens"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    jti = Column(String(64), unique=True, index=True, nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    revoked_at = Column(DateTime, default=utc_now, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship("User")
 
 
 # 6. INVITATIONS & QUOTATIONS
@@ -349,4 +434,201 @@ class AuditLog(Base):
     payload = Column(JSON, default=dict)
     ip_address = Column(String(45), nullable=True)
     created_at = Column(DateTime, default=utc_now)
+
+
+# ====================================================================
+# 8. VEHICLE INTELLIGENCE & AUTOMATED DISCOVERY MODELS
+# ====================================================================
+
+class VehicleDataSource(Base):
+    __tablename__ = "vehicle_data_sources"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    source_name = Column(String(150), nullable=False)
+    source_url = Column(Text, nullable=False)
+    source_type = Column(String(50), nullable=False) # MANUFACTURER_WEBSITE, PRESS_RELEASE, LICENSED_API, PUBLIC_PORTAL
+    access_method = Column(String(50), default="RSS_FEED") # RSS_FEED, REST_API, SITEMAP, MANUAL
+    licensing_status = Column(String(50), default="OFFICIAL_PUBLIC") # OFFICIAL_PUBLIC, LICENSED, PERMITTED_RSS, INTERNAL
+    enabled = Column(Boolean, default=True)
+    update_frequency = Column(String(50), default="DAILY") # DAILY, WEEKLY, MANUAL
+    last_synced_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    jobs = relationship("VehicleDiscoveryJob", back_populates="data_source")
+
+
+class VehicleDiscoveryJob(Base):
+    __tablename__ = "vehicle_discovery_jobs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    search_query = Column(String(255), nullable=False)
+    requested_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    source_id = Column(String(36), ForeignKey("vehicle_data_sources.id", ondelete="SET NULL"), nullable=True)
+    job_type = Column(String(50), default="CUSTOMER_REQUEST") # CUSTOMER_REQUEST, SCHEDULED_SCAN, ADMIN_MANUAL
+    status = Column(String(50), default="PENDING") # PENDING, IN_PROGRESS, COMPLETED, FAILED
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+    completed_at = Column(DateTime, nullable=True)
+
+    data_source = relationship("VehicleDataSource", back_populates="jobs")
+    requester = relationship("User")
+    records = relationship("VehicleDiscoveryRecord", back_populates="job", cascade="all, delete-orphan")
+
+
+class VehicleDiscoveryRecord(Base):
+    __tablename__ = "vehicle_discovery_records"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    job_id = Column(String(36), ForeignKey("vehicle_discovery_jobs.id", ondelete="SET NULL"), nullable=True)
+    discovered_brand = Column(String(100), nullable=False)
+    discovered_model = Column(String(150), nullable=False)
+    category_slug = Column(String(50), default="car")
+    body_type = Column(String(50), default="SUV")
+    launch_status = Column(String(50), default="LAUNCHED") # ANNOUNCED, LAUNCHED, UPCOMING, FACELIFT
+    model_year = Column(Integer, nullable=True)
+    reference_ex_showroom_min = Column(Numeric(12, 2), nullable=True)
+    reference_ex_showroom_max = Column(Numeric(12, 2), nullable=True)
+    extracted_data = Column(JSON, default=dict)
+    confidence_score = Column(Numeric(5, 2), default=0.95)
+    review_status = Column(String(50), default="PENDING_REVIEW") # PENDING_REVIEW, APPROVED, REJECTED, REPROCESSING
+    admin_notes = Column(Text, nullable=True)
+    reviewed_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    published_model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="SET NULL"), nullable=True)
+    primary_source_url = Column(Text, nullable=True)
+    primary_source_name = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    job = relationship("VehicleDiscoveryJob", back_populates="records")
+    reviewer = relationship("User", foreign_keys=[reviewed_by_user_id])
+    published_model = relationship("VehicleModel")
+    spec_sources = relationship("VehicleSpecificationSource", back_populates="discovery_record", cascade="all, delete-orphan")
+    price_histories = relationship("VehiclePriceHistory", back_populates="discovery_record", cascade="all, delete-orphan")
+    images = relationship("VehicleImage", back_populates="discovery_record", cascade="all, delete-orphan")
+    subscriptions = relationship("VehicleDiscoverySubscription", back_populates="discovery_record", cascade="all, delete-orphan")
+
+
+class VehicleSpecificationSource(Base):
+    __tablename__ = "vehicle_specification_sources"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
+    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
+    field_name = Column(String(100), nullable=False)
+    field_value = Column(Text, nullable=False)
+    unit = Column(String(30), nullable=True)
+    source_url = Column(Text, nullable=False)
+    source_name = Column(String(150), nullable=False)
+    source_priority = Column(Integer, default=1) # 1: OEM Spec, 2: Brochure, 3: Gov Open Data, 4: Wikidata/Open
+    license_name = Column(String(100), nullable=True) # e.g. CC BY 4.0, GODL-India, Public Domain
+    license_url = Column(Text, nullable=True)
+    confidence_score = Column(Numeric(5, 2), default=1.0)
+    is_conflict = Column(Boolean, default=False)
+    verified_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+
+    variant = relationship("VehicleVariant")
+    discovery_record = relationship("VehicleDiscoveryRecord", back_populates="spec_sources")
+
+
+class VehiclePriceHistory(Base):
+    __tablename__ = "vehicle_price_history"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
+    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
+    city_id = Column(String(36), ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
+    price_type = Column(String(50), default="EX_SHOWROOM_REFERENCE") # EX_SHOWROOM_REFERENCE, INDICATIVE_ON_ROAD
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(10), default="INR")
+    source_url = Column(Text, nullable=True)
+    source_name = Column(String(150), nullable=True)
+    effective_from = Column(DateTime, default=utc_now)
+    effective_until = Column(DateTime, nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+
+    variant = relationship("VehicleVariant")
+    discovery_record = relationship("VehicleDiscoveryRecord", back_populates="price_histories")
+    city = relationship("City")
+
+
+class VehicleImage(Base):
+    __tablename__ = "vehicle_images"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=True)
+    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
+    image_url = Column(Text, nullable=False)
+    thumbnail_url = Column(Text, nullable=True)
+    source_url = Column(Text, nullable=True)
+    source_page_url = Column(Text, nullable=True)
+    author_name = Column(String(200), nullable=True)
+    license_name = Column(String(100), nullable=True) # Public domain, CC BY-SA 4.0, CC0, etc.
+    license_url = Column(Text, nullable=True)
+    attribution_html = Column(Text, nullable=True)
+    usage_rights_status = Column(String(50), default="PUBLIC_COMMONS") # OFFICIAL_OEM_PRESS, PUBLIC_COMMONS, LICENSED
+    verification_status = Column(String(50), default="VERIFIED") # VERIFIED, REJECTED, PENDING_REVIEW
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    image_type = Column(String(50), default="EXTERIOR_FRONT") # EXTERIOR_FRONT, EXTERIOR_SIDE, INTERIOR, COLOR_VARIANT
+    is_primary = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    model = relationship("VehicleModel", back_populates="images")
+    discovery_record = relationship("VehicleDiscoveryRecord", back_populates="images")
+
+
+class VehicleDatasetSync(Base):
+    __tablename__ = "vehicle_dataset_syncs"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    dataset_name = Column(String(100), nullable=False) # VEHICLES_DB, WIKIDATA, DATA_GOV_IN, WIKIMEDIA
+    records_processed = Column(Integer, default=0)
+    records_imported = Column(Integer, default=0)
+    records_updated = Column(Integer, default=0)
+    status = Column(String(50), default="COMPLETED")
+    error_message = Column(Text, nullable=True)
+    sync_metadata = Column(JSON, default=dict)
+    started_at = Column(DateTime, default=utc_now)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class VehicleUpdateHistory(Base):
+    __tablename__ = "vehicle_update_history"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    vehicle_model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=True)
+    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
+    change_type = Column(String(50), nullable=False) # PRICE_REVISION, NEW_VARIANT, SPECIFICATION_UPDATE, FACELIFT
+    previous_data = Column(JSON, nullable=True)
+    new_data = Column(JSON, nullable=True)
+    source_url = Column(Text, nullable=True)
+    source_name = Column(String(150), nullable=True)
+    changed_at = Column(DateTime, default=utc_now)
+
+    model = relationship("VehicleModel")
+    variant = relationship("VehicleVariant")
+
+
+class VehicleDiscoverySubscription(Base):
+    __tablename__ = "vehicle_discovery_subscriptions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    customer_name = Column(String(150), nullable=False)
+    customer_email = Column(String(255), nullable=False)
+    customer_phone = Column(String(20), nullable=True)
+    target_city_id = Column(String(36), ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
+    notification_sent = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    discovery_record = relationship("VehicleDiscoveryRecord", back_populates="subscriptions")
+    user = relationship("User")
+    city = relationship("City")
+
 
