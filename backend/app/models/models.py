@@ -3,8 +3,34 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey, Enum as SQLEnum, JSON
 )
+from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
+
+class GUID(TypeDecorator):
+    """Platform-independent GUID type.
+    Uses PostgreSQL's native UUID type (with automatic $::UUID casting),
+    and CHAR(36) on SQLite. Transparently serializes and deserializes as str.
+    """
+    impl = CHAR
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(PG_UUID(as_uuid=False))
+        else:
+            return dialect.type_descriptor(CHAR(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -16,7 +42,7 @@ def utc_now():
 class City(Base):
     __tablename__ = "cities"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     name = Column(String(100), nullable=False)
     state = Column(String(100), nullable=False)
     pincode_prefix = Column(String(10), nullable=True)
@@ -33,7 +59,7 @@ class City(Base):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     email = Column(String(255), unique=True, index=True, nullable=False)
     phone = Column(String(20), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
@@ -54,10 +80,10 @@ class User(Base):
 class UserProfile(Base):
     __tablename__ = "user_profiles"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     full_name = Column(String(150), nullable=False)
-    city_id = Column(String(36), ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
+    city_id = Column(GUID, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
     preferred_language = Column(String(10), default="en")
     communication_consent = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utc_now)
@@ -71,12 +97,12 @@ class UserProfile(Base):
 class Dealer(Base):
     __tablename__ = "dealers"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     dealership_name = Column(String(255), nullable=False)
     legal_entity_name = Column(String(255), nullable=False)
     gstin = Column(String(15), unique=True, index=True, nullable=False)
-    city_id = Column(String(36), ForeignKey("cities.id"), nullable=False)
+    city_id = Column(GUID, ForeignKey("cities.id"), nullable=False)
     address = Column(Text, nullable=False)
     authorized_brands = Column(JSON, default=list) # e.g. ["Tata Motors", "Maruti Suzuki"]
     verification_status = Column(String(20), default="PENDING") # PENDING, VERIFIED, REJECTED
@@ -96,8 +122,8 @@ class Dealer(Base):
 class DealerDocument(Base):
     __tablename__ = "dealer_documents"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    dealer_id = Column(String(36), ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
     document_type = Column(String(50), nullable=False) # GST_CERTIFICATE, OEM_AGREEMENT, etc.
     file_url = Column(Text, nullable=False)
     verification_status = Column(String(20), default="PENDING")
@@ -110,7 +136,7 @@ class DealerDocument(Base):
 class VehicleCategory(Base):
     __tablename__ = "vehicle_categories"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     slug = Column(String(50), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
@@ -124,8 +150,8 @@ class VehicleCategory(Base):
 class VehicleBrand(Base):
     __tablename__ = "vehicle_brands"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    category_id = Column(String(36), ForeignKey("vehicle_categories.id"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    category_id = Column(GUID, ForeignKey("vehicle_categories.id"), nullable=False)
     name = Column(String(100), nullable=False)
     slug = Column(String(100), unique=True, nullable=False)
     canonical_name = Column(String(100), nullable=True)
@@ -143,8 +169,8 @@ class VehicleBrand(Base):
 class VehicleModel(Base):
     __tablename__ = "vehicle_models"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    brand_id = Column(String(36), ForeignKey("vehicle_brands.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    brand_id = Column(GUID, ForeignKey("vehicle_brands.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(150), nullable=False)
     slug = Column(String(150), unique=True, nullable=False)
     canonical_brand_name = Column(String(100), nullable=True)
@@ -179,8 +205,8 @@ class VehicleModel(Base):
 class VehicleVariant(Base):
     __tablename__ = "vehicle_variants"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    model_id = Column(GUID, ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(150), nullable=False)
     fuel_type = Column(String(30), nullable=False) # PETROL, DIESEL, CNG, ELECTRIC, HYBRID
     transmission = Column(String(30), nullable=False) # MANUAL, AUTOMATIC, AMT, CVT, DCT, SINGLE_SPEED_EV
@@ -194,7 +220,7 @@ class VehicleVariant(Base):
     claimed_mileage_kmpl = Column(Numeric(5, 2), nullable=True)
     reference_ex_showroom = Column(Numeric(12, 2), nullable=False)
     source_priority = Column(Integer, default=1) # 1: OEM Spec, 2: Brochure, 3: Gov Open Data, 4: Wikidata/Open
-    data_source_id = Column(String(36), ForeignKey("vehicle_data_sources.id", ondelete="SET NULL"), nullable=True)
+    data_source_id = Column(GUID, ForeignKey("vehicle_data_sources.id", ondelete="SET NULL"), nullable=True)
     source_url = Column(Text, nullable=True)
     source_document = Column(String(200), nullable=True)
     confidence_score = Column(Numeric(3, 2), default=1.0, nullable=True)
@@ -213,11 +239,11 @@ class VehicleVariant(Base):
 class BuyingGroup(Base):
     __tablename__ = "buying_groups"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     group_code = Column(String(30), unique=True, index=True, nullable=False)
-    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id"), nullable=False)
-    city_id = Column(String(36), ForeignKey("cities.id"), nullable=False)
-    created_by_user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    vehicle_variant_id = Column(GUID, ForeignKey("vehicle_variants.id"), nullable=False)
+    city_id = Column(GUID, ForeignKey("cities.id"), nullable=False)
+    created_by_user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
     status = Column(String(30), default="OPEN", nullable=False) # DRAFT, OPEN, QUALIFYING, READY_FOR_BIDDING, BIDDING_OPEN, OFFERS_AVAILABLE, COMPLETED, CANCELLED
     target_members = Column(Integer, default=5, nullable=False)
     current_members_count = Column(Integer, default=1, nullable=False)
@@ -240,9 +266,9 @@ class BuyingGroup(Base):
 class GroupMember(Base):
     __tablename__ = "group_members"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     buyer_notes = Column(Text, nullable=True)
     status = Column(String(30), default="ACTIVE") # ACTIVE, QUALIFIED, WITHDRAWN, PURCHASED
     intent_confirmed = Column(Boolean, default=True)
@@ -256,9 +282,9 @@ class GroupMember(Base):
 class BuyerIntentConfirmation(Base):
     __tablename__ = "buyer_intent_confirmations"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     purchase_timeline = Column(String(50), nullable=False) # IMMEDIATELY, WITHIN_15_DAYS, WITHIN_30_DAYS, WITHIN_60_DAYS, FLEXIBLE
     is_genuine_intent = Column(Boolean, default=True, nullable=False)
     is_non_binding_acknowledged = Column(Boolean, default=True, nullable=False)
@@ -274,8 +300,8 @@ class BuyerIntentConfirmation(Base):
 class AuthToken(Base):
     __tablename__ = "auth_tokens"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     token_type = Column(String(50), nullable=False) # PASSWORD_RESET, EMAIL_VERIFICATION
     token_hash = Column(String(255), nullable=False)
     expires_at = Column(DateTime, nullable=False)
@@ -288,9 +314,9 @@ class AuthToken(Base):
 class RevokedToken(Base):
     __tablename__ = "revoked_tokens"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     jti = Column(String(64), unique=True, index=True, nullable=False)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     revoked_at = Column(DateTime, default=utc_now, nullable=False)
     expires_at = Column(DateTime, nullable=False)
 
@@ -301,9 +327,9 @@ class RevokedToken(Base):
 class DealerGroupInvitation(Base):
     __tablename__ = "dealer_group_invitations"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
-    dealer_id = Column(String(36), ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
+    dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
     status = Column(String(30), default="INVITED") # INVITED, ACCEPTED, DECLINED, SUBMITTED
     invited_at = Column(DateTime, default=utc_now)
 
@@ -314,9 +340,9 @@ class DealerGroupInvitation(Base):
 class Quotation(Base):
     __tablename__ = "quotations"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
-    dealer_id = Column(String(36), ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
+    dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
     revision_number = Column(Integer, default=1)
     status = Column(String(30), default="SUBMITTED") # DRAFT, SUBMITTED, APPROVED, REJECTED, SUPERSEDED
     admin_review_notes = Column(Text, nullable=True)
@@ -351,12 +377,12 @@ class Quotation(Base):
 class QuotationRevision(Base):
     __tablename__ = "quotation_revisions"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    quotation_id = Column(String(36), ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    quotation_id = Column(GUID, ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
     revision_number = Column(Integer, nullable=False)
     snapshot = Column(JSON, nullable=False)
     revised_at = Column(DateTime, default=utc_now)
-    revised_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    revised_by_user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     quotation = relationship("Quotation", back_populates="revisions")
 
@@ -364,8 +390,8 @@ class QuotationRevision(Base):
 class QuotationLineItem(Base):
     __tablename__ = "quotation_line_items"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    quotation_id = Column(String(36), ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    quotation_id = Column(GUID, ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
     item_name = Column(String(150), nullable=False)
     item_type = Column(String(30), nullable=False) # MANDATORY, OPTIONAL, COMPLIMENTARY, DISCOUNT
     amount = Column(Numeric(12, 2), nullable=False)
@@ -377,11 +403,11 @@ class QuotationLineItem(Base):
 class BuyerLead(Base):
     __tablename__ = "buyer_leads"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
-    buyer_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    dealer_id = Column(String(36), ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
-    quotation_id = Column(String(36), ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
+    buyer_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
+    quotation_id = Column(GUID, ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
     status = Column(String(30), default="PENDING_CALLBACK") # PENDING_CALLBACK, CONTACTED, TEST_DRIVE_SCHEDULED, BOOKING_IN_PROGRESS, PURCHASE_COMPLETED, LOST
     buyer_consent_given = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
@@ -397,8 +423,8 @@ class BuyerLead(Base):
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(200), nullable=False)
     message = Column(Text, nullable=False)
     event_type = Column(String(100), nullable=False)
@@ -412,10 +438,10 @@ class Notification(Base):
 class Complaint(Base):
     __tablename__ = "complaints"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    submitted_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    target_dealer_id = Column(String(36), ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
-    group_id = Column(String(36), ForeignKey("buying_groups.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    submitted_by_user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    target_dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="SET NULL"), nullable=True)
+    group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="SET NULL"), nullable=True)
     subject = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
     status = Column(String(30), default="OPEN") # OPEN, INVESTIGATING, RESOLVED, DISMISSED
@@ -426,11 +452,11 @@ class Complaint(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    actor_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    actor_user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     action = Column(String(100), nullable=False)
     entity_type = Column(String(100), nullable=False)
-    entity_id = Column(String(36), nullable=False)
+    entity_id = Column(GUID, nullable=False)
     payload = Column(JSON, default=dict)
     ip_address = Column(String(45), nullable=True)
     created_at = Column(DateTime, default=utc_now)
@@ -443,7 +469,7 @@ class AuditLog(Base):
 class VehicleDataSource(Base):
     __tablename__ = "vehicle_data_sources"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     source_name = Column(String(150), nullable=False)
     source_url = Column(Text, nullable=False)
     source_type = Column(String(50), nullable=False) # MANUFACTURER_WEBSITE, PRESS_RELEASE, LICENSED_API, PUBLIC_PORTAL
@@ -462,10 +488,10 @@ class VehicleDataSource(Base):
 class VehicleDiscoveryJob(Base):
     __tablename__ = "vehicle_discovery_jobs"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     search_query = Column(String(255), nullable=False)
-    requested_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    source_id = Column(String(36), ForeignKey("vehicle_data_sources.id", ondelete="SET NULL"), nullable=True)
+    requested_by_user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    source_id = Column(GUID, ForeignKey("vehicle_data_sources.id", ondelete="SET NULL"), nullable=True)
     job_type = Column(String(50), default="CUSTOMER_REQUEST") # CUSTOMER_REQUEST, SCHEDULED_SCAN, ADMIN_MANUAL
     status = Column(String(50), default="PENDING") # PENDING, IN_PROGRESS, COMPLETED, FAILED
     error_message = Column(Text, nullable=True)
@@ -480,8 +506,8 @@ class VehicleDiscoveryJob(Base):
 class VehicleDiscoveryRecord(Base):
     __tablename__ = "vehicle_discovery_records"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    job_id = Column(String(36), ForeignKey("vehicle_discovery_jobs.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    job_id = Column(GUID, ForeignKey("vehicle_discovery_jobs.id", ondelete="SET NULL"), nullable=True)
     discovered_brand = Column(String(100), nullable=False)
     discovered_model = Column(String(150), nullable=False)
     category_slug = Column(String(50), default="car")
@@ -494,9 +520,9 @@ class VehicleDiscoveryRecord(Base):
     confidence_score = Column(Numeric(5, 2), default=0.95)
     review_status = Column(String(50), default="PENDING_REVIEW") # PENDING_REVIEW, APPROVED, REJECTED, REPROCESSING
     admin_notes = Column(Text, nullable=True)
-    reviewed_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by_user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reviewed_at = Column(DateTime, nullable=True)
-    published_model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="SET NULL"), nullable=True)
+    published_model_id = Column(GUID, ForeignKey("vehicle_models.id", ondelete="SET NULL"), nullable=True)
     primary_source_url = Column(Text, nullable=True)
     primary_source_name = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=utc_now)
@@ -514,9 +540,9 @@ class VehicleDiscoveryRecord(Base):
 class VehicleSpecificationSource(Base):
     __tablename__ = "vehicle_specification_sources"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
-    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    vehicle_variant_id = Column(GUID, ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
+    discovery_record_id = Column(GUID, ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
     field_name = Column(String(100), nullable=False)
     field_value = Column(Text, nullable=False)
     unit = Column(String(30), nullable=True)
@@ -537,10 +563,10 @@ class VehicleSpecificationSource(Base):
 class VehiclePriceHistory(Base):
     __tablename__ = "vehicle_price_history"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
-    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
-    city_id = Column(String(36), ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    vehicle_variant_id = Column(GUID, ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
+    discovery_record_id = Column(GUID, ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
+    city_id = Column(GUID, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
     price_type = Column(String(50), default="EX_SHOWROOM_REFERENCE") # EX_SHOWROOM_REFERENCE, INDICATIVE_ON_ROAD
     amount = Column(Numeric(12, 2), nullable=False)
     currency = Column(String(10), default="INR")
@@ -559,9 +585,9 @@ class VehiclePriceHistory(Base):
 class VehicleImage(Base):
     __tablename__ = "vehicle_images"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    vehicle_model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=True)
-    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    vehicle_model_id = Column(GUID, ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=True)
+    discovery_record_id = Column(GUID, ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=True)
     image_url = Column(Text, nullable=False)
     thumbnail_url = Column(Text, nullable=True)
     source_url = Column(Text, nullable=True)
@@ -585,7 +611,7 @@ class VehicleImage(Base):
 class VehicleDatasetSync(Base):
     __tablename__ = "vehicle_dataset_syncs"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
     dataset_name = Column(String(100), nullable=False) # VEHICLES_DB, WIKIDATA, DATA_GOV_IN, WIKIMEDIA
     records_processed = Column(Integer, default=0)
     records_imported = Column(Integer, default=0)
@@ -600,9 +626,9 @@ class VehicleDatasetSync(Base):
 class VehicleUpdateHistory(Base):
     __tablename__ = "vehicle_update_history"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    vehicle_model_id = Column(String(36), ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=True)
-    vehicle_variant_id = Column(String(36), ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    vehicle_model_id = Column(GUID, ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=True)
+    vehicle_variant_id = Column(GUID, ForeignKey("vehicle_variants.id", ondelete="CASCADE"), nullable=True)
     change_type = Column(String(50), nullable=False) # PRICE_REVISION, NEW_VARIANT, SPECIFICATION_UPDATE, FACELIFT
     previous_data = Column(JSON, nullable=True)
     new_data = Column(JSON, nullable=True)
@@ -617,13 +643,13 @@ class VehicleUpdateHistory(Base):
 class VehicleDiscoverySubscription(Base):
     __tablename__ = "vehicle_discovery_subscriptions"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    discovery_record_id = Column(String(36), ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID, primary_key=True, default=generate_uuid)
+    discovery_record_id = Column(GUID, ForeignKey("vehicle_discovery_records.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     customer_name = Column(String(150), nullable=False)
     customer_email = Column(String(255), nullable=False)
     customer_phone = Column(String(20), nullable=True)
-    target_city_id = Column(String(36), ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
+    target_city_id = Column(GUID, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
     notification_sent = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utc_now)
 
