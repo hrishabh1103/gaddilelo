@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import DemoBanner from '@/components/ui/DemoBanner';
@@ -15,18 +15,24 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased">
+    <html lang="en" className="w-full max-w-full overflow-x-hidden">
+      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased w-full max-w-full overflow-x-hidden selection:bg-brand-500 selection:text-white">
         <AuthProvider>
           <DemoBanner />
           <Navbar />
-          <main className="flex-1">
+          <main className="flex-1 w-full max-w-full overflow-x-hidden">
             {children}
           </main>
           <Footer />

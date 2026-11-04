@@ -109,23 +109,23 @@ export default function Navbar() {
       </div>
 
       {/* 2. MAIN NAVIGATION BAR */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 sm:h-[72px] gap-4 lg:gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16 sm:h-[72px] gap-2 sm:gap-4 lg:gap-8">
           
           {/* Logo */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-orange-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform">
-                <Car className="w-6 h-6 stroke-[2.2]" />
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink min-w-0">
+            <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-orange-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
+                <Car className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <div className="flex items-baseline">
-                  <span className="text-2xl font-black tracking-tight text-navy-950 font-sans">
+                  <span className="text-xl sm:text-2xl font-black tracking-tight text-navy-950 font-sans">
                     GAADI<span className="text-brand-600">LELO</span>
                   </span>
-                  <span className="text-xs font-bold text-slate-400 ml-0.5">.COM</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400 ml-0.5">.COM</span>
                 </div>
-                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase -mt-1">
+                <span className="text-[8px] sm:text-[10px] font-semibold text-slate-500 tracking-wider uppercase -mt-0.5 sm:-mt-1 whitespace-nowrap truncate">
                   Buy Together • Save Together
                 </span>
               </div>
@@ -327,16 +327,16 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/login"
-                  className="px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-navy-950 hover:bg-slate-100 rounded-xl transition-colors"
+                  className="hidden sm:inline-flex px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-navy-950 hover:bg-slate-100 rounded-xl transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-sm whitespace-nowrap"
                 >
                   Register
                 </Link>
@@ -346,7 +346,8 @@ export default function Navbar() {
             {/* Mobile Menu Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+              className="lg:hidden p-1.5 sm:p-2 text-slate-600 hover:bg-slate-100 rounded-xl flex-shrink-0"
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

@@ -6,7 +6,7 @@ export default function Footer() {
   const brandName = process.env.NEXT_PUBLIC_BRAND_NAME || 'GaadiLelo';
 
   return (
-    <footer className="bg-navy-950 text-slate-400 text-xs border-t border-navy-800 font-sans">
+    <footer className="bg-navy-950 text-slate-400 text-xs border-t border-navy-800 font-sans w-full max-w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 space-y-12">
         
         {/* Main Footer Links Columns */}

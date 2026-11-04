@@ -135,12 +135,12 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-12 sm:space-y-16 pb-20 bg-[#f8f9fa] text-slate-800 font-sans">
+    <div className="space-y-12 sm:space-y-16 pb-20 bg-[#f8f9fa] text-slate-800 font-sans w-full max-w-full overflow-x-hidden">
       
       {/* ========================================================= */}
       {/* 1. CARDEKHO-STYLE HERO SEARCH & SHOWCASE SECTION */}
       {/* ========================================================= */}
-      <section className="bg-white border-b border-slate-200">
+      <section className="bg-white border-b border-slate-200 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -165,11 +165,11 @@ export default function HomePage() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-md shadow-slate-200/50 overflow-hidden">
                 
                 {/* Search Tabs */}
-                <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-bold">
+                <div className="flex border-b border-slate-200 bg-slate-50 text-[11px] sm:text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setSearchTab('budget')}
-                    className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                    className={`flex-1 py-3 px-2 text-center transition-colors border-b-2 truncate ${
                       searchTab === 'budget' 
                         ? 'border-brand-600 text-brand-700 bg-white' 
                         : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -180,7 +180,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setSearchTab('body')}
-                    className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                    className={`flex-1 py-3 px-2 text-center transition-colors border-b-2 truncate ${
                       searchTab === 'body' 
                         ? 'border-brand-600 text-brand-700 bg-white' 
                         : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -191,7 +191,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setSearchTab('brand')}
-                    className={`flex-1 py-3 text-center transition-colors border-b-2 ${
+                    className={`flex-1 py-3 px-2 text-center transition-colors border-b-2 truncate ${
                       searchTab === 'brand' 
                         ? 'border-brand-600 text-brand-700 bg-white' 
                         : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -453,29 +453,29 @@ export default function HomePage() {
       {/* 2. CORPORATE TRUSTMARKS & STATS (CARDEKHO ENTERPRISE STRIP) */}
       {/* ========================================================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-8 shadow-sm overflow-hidden">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-100">
             
-            <div className="pt-3 md:pt-0">
-              <span className="text-2xl sm:text-3xl font-black text-navy-950 block">3,450+</span>
+            <div className="pt-2 md:pt-0">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-navy-950 block">3,450+</span>
               <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Verified Buyers Pooled</span>
               <span className="text-[11px] text-emerald-600 font-medium">Active in Indore Pilot</span>
             </div>
 
-            <div className="pt-3 md:pt-0">
-              <span className="text-2xl sm:text-3xl font-black text-navy-950 block">48+</span>
+            <div className="pt-2 md:pt-0">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-navy-950 block">48+</span>
               <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Authorized Dealerships</span>
               <span className="text-[11px] text-slate-400">Tata, Hyundai, Maruti, Mahindra</span>
             </div>
 
-            <div className="pt-3 md:pt-0">
-              <span className="text-2xl sm:text-3xl font-black text-emerald-600 block">₹78,000</span>
+            <div className="pt-2 md:pt-0">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 block">₹78,000</span>
               <span className="text-xs font-semibold text-slate-500 mt-0.5 block">Avg. Saving Per Buyer</span>
               <span className="text-[11px] text-slate-400">Beyond solitary walk-in pricing</span>
             </div>
 
-            <div className="pt-3 md:pt-0">
-              <span className="text-2xl sm:text-3xl font-black text-brand-600 block">₹0 Fee</span>
+            <div className="pt-2 md:pt-0">
+              <span className="text-xl sm:text-2xl lg:text-3xl font-black text-brand-600 block">₹0 Fee</span>
               <span className="text-xs font-semibold text-slate-500 mt-0.5 block">100% Free & Non-Binding</span>
               <span className="text-[11px] text-slate-400">Zero purchase lock-in</span>
             </div>
@@ -740,7 +740,7 @@ export default function HomePage() {
       {/* ========================================================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="bg-navy-950 rounded-2xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-navy-950 rounded-2xl p-4 sm:p-10 text-white shadow-xl relative overflow-hidden">
           
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
@@ -770,7 +770,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setCalcBudget('under10')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                    className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all border text-center truncate ${
                       calcBudget === 'under10'
                         ? 'bg-brand-600 text-white border-brand-500 shadow-md'
                         : 'bg-navy-900 text-slate-300 border-navy-800 hover:bg-navy-850'
@@ -781,7 +781,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setCalcBudget('10to20')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                    className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all border text-center truncate ${
                       calcBudget === '10to20'
                         ? 'bg-brand-600 text-white border-brand-500 shadow-md'
                         : 'bg-navy-900 text-slate-300 border-navy-800 hover:bg-navy-850'
@@ -792,7 +792,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setCalcBudget('20to35')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                    className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all border text-center truncate ${
                       calcBudget === '20to35'
                         ? 'bg-brand-600 text-white border-brand-500 shadow-md'
                         : 'bg-navy-900 text-slate-300 border-navy-800 hover:bg-navy-850'
@@ -803,7 +803,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setCalcBudget('commercial')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                    className={`py-2 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all border text-center truncate ${
                       calcBudget === 'commercial'
                         ? 'bg-brand-600 text-white border-brand-500 shadow-md'
                         : 'bg-navy-900 text-slate-300 border-navy-800 hover:bg-navy-850'
@@ -824,13 +824,13 @@ export default function HomePage() {
                     {calcCohortSize} Buyers Pooled
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                   {[3, 5, 10, 15].map((s) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => setCalcCohortSize(s)}
-                      className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                      className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold transition-all border text-center ${
                         calcCohortSize === s
                           ? 'bg-white text-navy-950 border-white shadow-md font-black'
                           : 'bg-navy-900 text-slate-300 border-navy-800 hover:bg-navy-850'
@@ -985,7 +985,7 @@ export default function HomePage() {
       {/* ========================================================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-8">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-10 shadow-sm space-y-8 overflow-hidden">
           
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-bold text-brand-600 uppercase tracking-wider">The Group Buying Advantage</span>
@@ -997,8 +997,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left border-collapse">
+          <div className="w-full max-w-full overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[580px] text-xs text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold uppercase">
                   <th className="py-3 px-4">Feature / Parameter</th>
