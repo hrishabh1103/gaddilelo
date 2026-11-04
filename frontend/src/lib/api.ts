@@ -3305,7 +3305,14 @@ export async function apiFetch<T = any>(
         if (res.status >= 500) {
           throw new Error(`Failed to fetch: Server proxy returned ${res.status}`);
         }
-        const errorMsg = data?.detail || data?.message || `Request failed with status ${res.status}`;
+        let errorMsg = `Request failed with status ${res.status}`;
+        if (typeof data?.detail === 'string') {
+          errorMsg = data.detail;
+        } else if (Array.isArray(data?.detail) && data.detail.length > 0) {
+          errorMsg = data.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ');
+        } else if (data?.message) {
+          errorMsg = data.message;
+        }
         throw new Error(errorMsg);
       }
 
