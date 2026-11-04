@@ -56,6 +56,25 @@ class SQLEnumType(TypeDecorator):
     def process_result_value(self, value, dialect):
         return str(value) if value is not None else None
 
+class TZDateTime(TypeDecorator):
+    """Platform-independent Timezone-Aware DateTime type.
+    Uses PostgreSQL's TIMESTAMP WITH TIME ZONE (TIMESTAMPTZ) to bind
+    offset-aware datetimes without asyncpg subtraction mismatch.
+    """
+    impl = DateTime
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        return dialect.type_descriptor(DateTime(timezone=True))
+
+    def process_bind_param(self, value, dialect):
+        if value is not None and getattr(value, 'tzinfo', None) is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
+
+    def process_result_value(self, value, dialect):
+        return value
+
 def generate_uuid():
     return str(uuid.uuid4())
 
@@ -71,8 +90,8 @@ class City(Base):
     state = Column(String(100), nullable=False)
     pincode_prefix = Column(String(10), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     dealers = relationship("Dealer", back_populates="city")
     buying_groups = relationship("BuyingGroup", back_populates="city")
@@ -90,8 +109,8 @@ class User(Base):
     role = Column(SQLEnumType("user_role_enum", "BUYER", "DEALER", "ADMIN"), default="BUYER", nullable=False) # BUYER, DEALER, ADMIN
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     dealer = relationship("Dealer", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -110,8 +129,8 @@ class UserProfile(Base):
     city_id = Column(GUID, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
     preferred_language = Column(String(10), default="en")
     communication_consent = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     user = relationship("User", back_populates="profile")
     city = relationship("City", back_populates="user_profiles")
@@ -131,9 +150,9 @@ class Dealer(Base):
     authorized_brands = Column(JSON, default=list) # e.g. ["Tata Motors", "Maruti Suzuki"]
     verification_status = Column(SQLEnumType("dealer_verification_enum", "PENDING", "VERIFIED", "REJECTED"), default="PENDING") # PENDING, VERIFIED, REJECTED
     verification_notes = Column(Text, nullable=True)
-    verified_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    verified_at = Column(TZDateTime, nullable=True)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     user = relationship("User", back_populates="dealer")
     city = relationship("City", back_populates="dealers")
@@ -151,7 +170,7 @@ class DealerDocument(Base):
     document_type = Column(SQLEnumType("document_type_enum", "GST_CERTIFICATE", "OEM_DEALERSHIP_AGREEMENT", "PAN_CARD", "TRADE_LICENSE", "BANK_PROOF"), nullable=False) # GST_CERTIFICATE, OEM_AGREEMENT, etc.
     file_url = Column(Text, nullable=False)
     verification_status = Column(SQLEnumType("dealer_verification_enum", "PENDING", "VERIFIED", "REJECTED"), default="PENDING")
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     dealer = relationship("Dealer", back_populates="documents")
 
@@ -166,7 +185,7 @@ class VehicleCategory(Base):
     description = Column(Text, nullable=True)
     icon_name = Column(String(50), nullable=True)
     display_order = Column(Integer, default=0)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     brands = relationship("VehicleBrand", back_populates="category")
 
@@ -184,7 +203,7 @@ class VehicleBrand(Base):
     source_license = Column(String(50), default="ISC", nullable=True)
     country = Column(String(50), default="India", nullable=True)
     logo_url = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     category = relationship("VehicleCategory", back_populates="brands")
     models = relationship("VehicleModel", back_populates="brand", cascade="all, delete-orphan")
@@ -204,7 +223,7 @@ class VehicleModel(Base):
     source_name = Column(String(50), default="meterapp", nullable=True)
     source_license = Column(String(50), default="ISC", nullable=True)
     source_provenance = Column(JSON, default=dict, nullable=True)
-    imported_at = Column(DateTime, nullable=True)
+    imported_at = Column(TZDateTime, nullable=True)
     body_type = Column(String(50), nullable=False)
     generation = Column(String(50), nullable=True) # e.g. "Gen 2", "Facelift"
     model_year = Column(Integer, nullable=True)
@@ -218,8 +237,8 @@ class VehicleModel(Base):
     safety_rating_agency = Column(String(50), nullable=True) # BHARAT_NCAP, GLOBAL_NCAP
     image_url = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    last_verified_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
+    last_verified_at = Column(TZDateTime, nullable=True)
+    created_at = Column(TZDateTime, default=utc_now)
 
     brand = relationship("VehicleBrand", back_populates="models")
     variants = relationship("VehicleVariant", back_populates="model", cascade="all, delete-orphan")
@@ -251,8 +270,8 @@ class VehicleVariant(Base):
     review_status = Column(String(30), default="VERIFIED", nullable=True) # VERIFIED, PENDING_REVIEW, ADMIN_REVIEW
     specifications = Column(JSON, default=dict)
     is_active = Column(Boolean, default=True)
-    last_verified_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
+    last_verified_at = Column(TZDateTime, nullable=True)
+    created_at = Column(TZDateTime, default=utc_now)
 
     model = relationship("VehicleModel", back_populates="variants")
     buying_groups = relationship("BuyingGroup", back_populates="variant")
@@ -272,11 +291,11 @@ class BuyingGroup(Base):
     target_members = Column(Integer, default=5, nullable=False)
     current_members_count = Column(Integer, default=1, nullable=False)
     target_purchase_timeline = Column(String(50), nullable=False) # WITHIN_15_DAYS, WITHIN_30_DAYS, WITHIN_60_DAYS
-    bidding_start_time = Column(DateTime, nullable=True)
-    bidding_end_time = Column(DateTime, nullable=True)
+    bidding_start_time = Column(TZDateTime, nullable=True)
+    bidding_end_time = Column(TZDateTime, nullable=True)
     additional_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     variant = relationship("VehicleVariant", back_populates="buying_groups")
     city = relationship("City", back_populates="buying_groups")
@@ -296,8 +315,8 @@ class GroupMember(Base):
     buyer_notes = Column(Text, nullable=True)
     status = Column(SQLEnumType("member_status_enum", "ACTIVE", "QUALIFIED", "WITHDRAWN", "PURCHASED"), default="ACTIVE") # ACTIVE, QUALIFIED, WITHDRAWN, PURCHASED
     intent_confirmed = Column(Boolean, default=True)
-    intent_confirmed_at = Column(DateTime, default=utc_now)
-    joined_at = Column(DateTime, default=utc_now)
+    intent_confirmed_at = Column(TZDateTime, default=utc_now)
+    joined_at = Column(TZDateTime, default=utc_now)
 
     group = relationship("BuyingGroup", back_populates="members")
     user = relationship("User", back_populates="group_memberships")
@@ -315,7 +334,7 @@ class BuyerIntentConfirmation(Base):
     agreed_to_contact = Column(Boolean, default=True, nullable=False)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
-    confirmed_at = Column(DateTime, default=utc_now)
+    confirmed_at = Column(TZDateTime, default=utc_now)
 
     group = relationship("BuyingGroup")
     user = relationship("User")
@@ -328,9 +347,9 @@ class AuthToken(Base):
     user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     token_type = Column(String(50), nullable=False) # PASSWORD_RESET, EMAIL_VERIFICATION
     token_hash = Column(String(255), nullable=False)
-    expires_at = Column(DateTime, nullable=False)
+    expires_at = Column(TZDateTime, nullable=False)
     is_used = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     user = relationship("User")
 
@@ -341,8 +360,8 @@ class RevokedToken(Base):
     id = Column(GUID, primary_key=True, default=generate_uuid)
     jti = Column(String(64), unique=True, index=True, nullable=False)
     user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    revoked_at = Column(DateTime, default=utc_now, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(TZDateTime, default=utc_now, nullable=False)
+    expires_at = Column(TZDateTime, nullable=False)
 
     user = relationship("User")
 
@@ -355,7 +374,7 @@ class DealerGroupInvitation(Base):
     group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
     dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
     status = Column(SQLEnumType("invitation_status_enum", "INVITED", "ACCEPTED", "DECLINED", "SUBMITTED"), default="INVITED") # INVITED, ACCEPTED, DECLINED, SUBMITTED
-    invited_at = Column(DateTime, default=utc_now)
+    invited_at = Column(TZDateTime, default=utc_now)
 
     group = relationship("BuyingGroup", back_populates="invitations")
     dealer = relationship("Dealer", back_populates="invitations")
@@ -386,10 +405,10 @@ class Quotation(Base):
     final_on_road_price = Column(Numeric(12, 2), nullable=False)
     
     delivery_timeline_days = Column(Integer, nullable=False)
-    offer_valid_until = Column(DateTime, nullable=False)
+    offer_valid_until = Column(TZDateTime, nullable=False)
     remarks = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     group = relationship("BuyingGroup", back_populates="quotations")
     dealer = relationship("Dealer", back_populates="quotations")
@@ -405,7 +424,7 @@ class QuotationRevision(Base):
     quotation_id = Column(GUID, ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
     revision_number = Column(Integer, nullable=False)
     snapshot = Column(JSON, nullable=False)
-    revised_at = Column(DateTime, default=utc_now)
+    revised_at = Column(TZDateTime, default=utc_now)
     revised_by_user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     quotation = relationship("Quotation", back_populates="revisions")
@@ -435,8 +454,8 @@ class BuyerLead(Base):
     status = Column(SQLEnumType("lead_status_enum", "PENDING_CALLBACK", "CONTACTED", "TEST_DRIVE_SCHEDULED", "BOOKING_IN_PROGRESS", "PURCHASE_COMPLETED", "LOST"), default="PENDING_CALLBACK") # PENDING_CALLBACK, CONTACTED, TEST_DRIVE_SCHEDULED, BOOKING_IN_PROGRESS, PURCHASE_COMPLETED, LOST
     buyer_consent_given = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     group = relationship("BuyingGroup", back_populates="leads")
     buyer = relationship("User", back_populates="buyer_leads")
@@ -454,7 +473,7 @@ class Notification(Base):
     event_type = Column(String(100), nullable=False)
     link_url = Column(Text, nullable=True)
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     user = relationship("User", back_populates="notifications")
 
@@ -469,8 +488,8 @@ class Complaint(Base):
     subject = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
     status = Column(SQLEnumType("complaint_status_enum", "OPEN", "INVESTIGATING", "RESOLVED", "DISMISSED"), default="OPEN") # OPEN, INVESTIGATING, RESOLVED, DISMISSED
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
 
 class AuditLog(Base):
@@ -483,7 +502,7 @@ class AuditLog(Base):
     entity_id = Column(GUID, nullable=False)
     payload = Column(JSON, default=dict)
     ip_address = Column(String(45), nullable=True)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
 
 # ====================================================================
@@ -501,10 +520,10 @@ class VehicleDataSource(Base):
     licensing_status = Column(String(50), default="OFFICIAL_PUBLIC") # OFFICIAL_PUBLIC, LICENSED, PERMITTED_RSS, INTERNAL
     enabled = Column(Boolean, default=True)
     update_frequency = Column(String(50), default="DAILY") # DAILY, WEEKLY, MANUAL
-    last_synced_at = Column(DateTime, nullable=True)
+    last_synced_at = Column(TZDateTime, nullable=True)
     last_error = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     jobs = relationship("VehicleDiscoveryJob", back_populates="data_source")
 
@@ -519,8 +538,8 @@ class VehicleDiscoveryJob(Base):
     job_type = Column(String(50), default="CUSTOMER_REQUEST") # CUSTOMER_REQUEST, SCHEDULED_SCAN, ADMIN_MANUAL
     status = Column(String(50), default="PENDING") # PENDING, IN_PROGRESS, COMPLETED, FAILED
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(TZDateTime, default=utc_now)
+    completed_at = Column(TZDateTime, nullable=True)
 
     data_source = relationship("VehicleDataSource", back_populates="jobs")
     requester = relationship("User")
@@ -545,12 +564,12 @@ class VehicleDiscoveryRecord(Base):
     review_status = Column(String(50), default="PENDING_REVIEW") # PENDING_REVIEW, APPROVED, REJECTED, REPROCESSING
     admin_notes = Column(Text, nullable=True)
     reviewed_by_user_id = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    reviewed_at = Column(DateTime, nullable=True)
+    reviewed_at = Column(TZDateTime, nullable=True)
     published_model_id = Column(GUID, ForeignKey("vehicle_models.id", ondelete="SET NULL"), nullable=True)
     primary_source_url = Column(Text, nullable=True)
     primary_source_name = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
+    updated_at = Column(TZDateTime, default=utc_now, onupdate=utc_now)
 
     job = relationship("VehicleDiscoveryJob", back_populates="records")
     reviewer = relationship("User", foreign_keys=[reviewed_by_user_id])
@@ -577,8 +596,8 @@ class VehicleSpecificationSource(Base):
     license_url = Column(Text, nullable=True)
     confidence_score = Column(Numeric(5, 2), default=1.0)
     is_conflict = Column(Boolean, default=False)
-    verified_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
+    verified_at = Column(TZDateTime, nullable=True)
+    created_at = Column(TZDateTime, default=utc_now)
 
     variant = relationship("VehicleVariant")
     discovery_record = relationship("VehicleDiscoveryRecord", back_populates="spec_sources")
@@ -596,10 +615,10 @@ class VehiclePriceHistory(Base):
     currency = Column(String(10), default="INR")
     source_url = Column(Text, nullable=True)
     source_name = Column(String(150), nullable=True)
-    effective_from = Column(DateTime, default=utc_now)
-    effective_until = Column(DateTime, nullable=True)
-    verified_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=utc_now)
+    effective_from = Column(TZDateTime, default=utc_now)
+    effective_until = Column(TZDateTime, nullable=True)
+    verified_at = Column(TZDateTime, nullable=True)
+    created_at = Column(TZDateTime, default=utc_now)
 
     variant = relationship("VehicleVariant")
     discovery_record = relationship("VehicleDiscoveryRecord", back_populates="price_histories")
@@ -626,7 +645,7 @@ class VehicleImage(Base):
     height = Column(Integer, nullable=True)
     image_type = Column(String(50), default="EXTERIOR_FRONT") # EXTERIOR_FRONT, EXTERIOR_SIDE, INTERIOR, COLOR_VARIANT
     is_primary = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     model = relationship("VehicleModel", back_populates="images")
     discovery_record = relationship("VehicleDiscoveryRecord", back_populates="images")
@@ -643,8 +662,8 @@ class VehicleDatasetSync(Base):
     status = Column(String(50), default="COMPLETED")
     error_message = Column(Text, nullable=True)
     sync_metadata = Column(JSON, default=dict)
-    started_at = Column(DateTime, default=utc_now)
-    completed_at = Column(DateTime, nullable=True)
+    started_at = Column(TZDateTime, default=utc_now)
+    completed_at = Column(TZDateTime, nullable=True)
 
 
 class VehicleUpdateHistory(Base):
@@ -658,7 +677,7 @@ class VehicleUpdateHistory(Base):
     new_data = Column(JSON, nullable=True)
     source_url = Column(Text, nullable=True)
     source_name = Column(String(150), nullable=True)
-    changed_at = Column(DateTime, default=utc_now)
+    changed_at = Column(TZDateTime, default=utc_now)
 
     model = relationship("VehicleModel")
     variant = relationship("VehicleVariant")
@@ -675,7 +694,7 @@ class VehicleDiscoverySubscription(Base):
     customer_phone = Column(String(20), nullable=True)
     target_city_id = Column(GUID, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True)
     notification_sent = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=utc_now)
+    created_at = Column(TZDateTime, default=utc_now)
 
     discovery_record = relationship("VehicleDiscoveryRecord", back_populates="subscriptions")
     user = relationship("User")
