@@ -8,6 +8,11 @@ import Footer from '@/components/layout/Footer';
 export const metadata: Metadata = {
   title: 'GaadiLelo.com — Buy Together. Save Together.',
   description: "India's premier vehicle group-buying marketplace. Join forces with buyers in Indore, let authorized dealerships compete, and unlock the lowest transparent on-road price.",
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

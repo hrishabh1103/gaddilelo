@@ -15,13 +15,19 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     ENVIRONMENT: str = "development"
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "https://gaddilelo.hrishabhbase.workers.dev"
     
     # Dual database support: default to local sqlite+aiosqlite for zero-friction run,
     # or postgresql+asyncpg for production / Supabase.
     DATABASE_URL: str = "sqlite+aiosqlite:///./gaadilelo.db"
     
-    CORS_ORIGINS: Union[str, List[str]] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ORIGINS: Union[str, List[str]] = [
+        "https://gaddilelo.hrishabhbase.workers.dev",
+        "https://gaadilelo.com",
+        "https://www.gaadilelo.com",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ]
     
     # Distributed cache / shared rate limiter backend
     REDIS_URL: Optional[str] = None
@@ -50,11 +56,27 @@ class Settings(BaseSettings):
     
     @field_validator("CORS_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
+        defaults = [
+            "https://gaddilelo.hrishabhbase.workers.dev",
+            "https://gaadilelo.com",
+            "https://www.gaadilelo.com",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ]
+        if isinstance(v, str):
+            if v.strip().startswith("[") and v.strip().endswith("]"):
+                import json
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return list(dict.fromkeys(parsed + defaults))
+                except Exception:
+                    pass
+            items = [i.strip() for i in v.split(",") if i.strip()]
+            return list(dict.fromkeys(items + defaults)) if items else defaults
         elif isinstance(v, list):
-            return v
-        return ["http://localhost:3000", "http://127.0.0.1:3000"]
+            return list(dict.fromkeys(v + defaults))
+        return defaults
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":

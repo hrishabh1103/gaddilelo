@@ -3270,12 +3270,16 @@ export async function apiFetch<T = any>(
   candidateUrls.push(`${cleanBase}${cleanEndpoint}`);
 
   if (isBrowser) {
-    candidateUrls.push(`/api/v1${cleanEndpoint}`);
-    candidateUrls.push(`http://127.0.0.1:8000/api/v1${cleanEndpoint}`);
-    candidateUrls.push(`http://localhost:8000/api/v1${cleanEndpoint}`);
+    if (cleanBase.includes('localhost') || cleanBase.includes('127.0.0.1')) {
+      candidateUrls.push(`/api/v1${cleanEndpoint}`);
+      candidateUrls.push(`http://127.0.0.1:8000/api/v1${cleanEndpoint}`);
+      candidateUrls.push(`http://localhost:8000/api/v1${cleanEndpoint}`);
+    }
   } else {
-    candidateUrls.push(`http://127.0.0.1:8000/api/v1${cleanEndpoint}`);
-    candidateUrls.push(`http://localhost:8000/api/v1${cleanEndpoint}`);
+    if (cleanBase.includes('localhost') || cleanBase.includes('127.0.0.1')) {
+      candidateUrls.push(`http://127.0.0.1:8000/api/v1${cleanEndpoint}`);
+      candidateUrls.push(`http://localhost:8000/api/v1${cleanEndpoint}`);
+    }
   }
 
   let lastError: any = null;
@@ -3303,6 +3307,15 @@ export async function apiFetch<T = any>(
         }
         const errorMsg = data?.detail || data?.message || `Request failed with status ${res.status}`;
         throw new Error(errorMsg);
+      }
+
+      // If backend returns an empty array for catalog metadata (e.g. before initial DB seed),
+      // gracefully fall back so the UI displays the vehicle showcase and filters without disruption
+      if (Array.isArray(data) && data.length === 0) {
+        if (cleanEndpoint === '/catalog/categories') return FALLBACK_CATEGORIES as unknown as T;
+        if (cleanEndpoint === '/catalog/cities') return FALLBACK_CITIES as unknown as T;
+        if (cleanEndpoint.startsWith('/catalog/brands')) return FALLBACK_BRANDS as unknown as T;
+        if (cleanEndpoint.startsWith('/catalog/models')) return FALLBACK_MODELS as unknown as T;
       }
 
       return data as T;

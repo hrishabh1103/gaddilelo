@@ -49,12 +49,28 @@ app = FastAPI(
 
 # CORS Configuration
 if settings.ENVIRONMENT.lower() == "production":
+    production_origins = [
+        "https://gaddilelo.hrishabhbase.workers.dev",
+        "https://gaadilelo.com",
+        "https://www.gaadilelo.com",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    if settings.FRONTEND_URL:
+        production_origins.append(settings.FRONTEND_URL.rstrip("/"))
+    configured_origins = (
+        settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list)
+        else [o.strip() for o in str(settings.CORS_ORIGINS).split(",") if o.strip()]
+    )
+    all_allowed_origins = list(dict.fromkeys(production_origins + configured_origins))
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
+        allow_origins=all_allowed_origins,
+        allow_origin_regex=r"https://.*\.workers\.dev",
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 else:
     app.add_middleware(
