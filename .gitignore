@@ -6,8 +6,11 @@ node_modules/
 # Testing
 coverage/
 
-# Next.js build output
+# Next.js & Cloudflare build output
 .next/
+.open-next/
+.wrangler/
+.dev.vars
 out/
 build/
 dist/
