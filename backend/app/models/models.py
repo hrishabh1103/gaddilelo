@@ -4,7 +4,7 @@ from sqlalchemy import (
     Column, String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey, Enum as SQLEnum, JSON
 )
 from sqlalchemy.types import TypeDecorator, CHAR
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ENUM as PG_ENUM
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
 
@@ -31,6 +31,30 @@ class GUID(TypeDecorator):
         if value is None:
             return value
         return str(value)
+
+class SQLEnumType(TypeDecorator):
+    """Platform-independent Enum type.
+    Uses PostgreSQL's native ENUM type (bound correctly for asyncpg without VARCHAR cast),
+    and String on SQLite.
+    """
+    impl = String
+    cache_ok = True
+
+    def __init__(self, name: str, *values: str, **kw):
+        super().__init__(**kw)
+        self.enum_name = name
+        self.values = values
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(PG_ENUM(*self.values, name=self.enum_name, create_type=False))
+        return dialect.type_descriptor(String(50))
+
+    def process_bind_param(self, value, dialect):
+        return str(value) if value is not None else None
+
+    def process_result_value(self, value, dialect):
+        return str(value) if value is not None else None
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -63,7 +87,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     phone = Column(String(20), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), default="BUYER", nullable=False) # BUYER, DEALER, ADMIN
+    role = Column(SQLEnumType("user_role_enum", "BUYER", "DEALER", "ADMIN"), default="BUYER", nullable=False) # BUYER, DEALER, ADMIN
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utc_now)
@@ -105,7 +129,7 @@ class Dealer(Base):
     city_id = Column(GUID, ForeignKey("cities.id"), nullable=False)
     address = Column(Text, nullable=False)
     authorized_brands = Column(JSON, default=list) # e.g. ["Tata Motors", "Maruti Suzuki"]
-    verification_status = Column(String(20), default="PENDING") # PENDING, VERIFIED, REJECTED
+    verification_status = Column(SQLEnumType("dealer_verification_enum", "PENDING", "VERIFIED", "REJECTED"), default="PENDING") # PENDING, VERIFIED, REJECTED
     verification_notes = Column(Text, nullable=True)
     verified_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)
@@ -124,9 +148,9 @@ class DealerDocument(Base):
 
     id = Column(GUID, primary_key=True, default=generate_uuid)
     dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
-    document_type = Column(String(50), nullable=False) # GST_CERTIFICATE, OEM_AGREEMENT, etc.
+    document_type = Column(SQLEnumType("document_type_enum", "GST_CERTIFICATE", "OEM_DEALERSHIP_AGREEMENT", "PAN_CARD", "TRADE_LICENSE", "BANK_PROOF"), nullable=False) # GST_CERTIFICATE, OEM_AGREEMENT, etc.
     file_url = Column(Text, nullable=False)
-    verification_status = Column(String(20), default="PENDING")
+    verification_status = Column(SQLEnumType("dealer_verification_enum", "PENDING", "VERIFIED", "REJECTED"), default="PENDING")
     created_at = Column(DateTime, default=utc_now)
 
     dealer = relationship("Dealer", back_populates="documents")
@@ -208,8 +232,8 @@ class VehicleVariant(Base):
     id = Column(GUID, primary_key=True, default=generate_uuid)
     model_id = Column(GUID, ForeignKey("vehicle_models.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(150), nullable=False)
-    fuel_type = Column(String(30), nullable=False) # PETROL, DIESEL, CNG, ELECTRIC, HYBRID
-    transmission = Column(String(30), nullable=False) # MANUAL, AUTOMATIC, AMT, CVT, DCT, SINGLE_SPEED_EV
+    fuel_type = Column(SQLEnumType("fuel_type_enum", "PETROL", "DIESEL", "CNG", "ELECTRIC", "HYBRID"), nullable=False) # PETROL, DIESEL, CNG, ELECTRIC, HYBRID
+    transmission = Column(SQLEnumType("transmission_enum", "MANUAL", "AUTOMATIC", "AMT", "CVT", "DCT", "SINGLE_SPEED_EV"), nullable=False) # MANUAL, AUTOMATIC, AMT, CVT, DCT, SINGLE_SPEED_EV
     seating_capacity = Column(Integer, default=5)
     engine_cc_or_battery_kwh = Column(String(50), nullable=True)
     engine_displacement_cc = Column(Integer, nullable=True)
@@ -244,7 +268,7 @@ class BuyingGroup(Base):
     vehicle_variant_id = Column(GUID, ForeignKey("vehicle_variants.id"), nullable=False)
     city_id = Column(GUID, ForeignKey("cities.id"), nullable=False)
     created_by_user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
-    status = Column(String(30), default="OPEN", nullable=False) # DRAFT, OPEN, QUALIFYING, READY_FOR_BIDDING, BIDDING_OPEN, OFFERS_AVAILABLE, COMPLETED, CANCELLED
+    status = Column(SQLEnumType("group_status_enum", "DRAFT", "OPEN", "QUALIFYING", "READY_FOR_BIDDING", "BIDDING_OPEN", "OFFERS_AVAILABLE", "COMPLETED", "CANCELLED"), default="OPEN", nullable=False) # DRAFT, OPEN, QUALIFYING, READY_FOR_BIDDING, BIDDING_OPEN, OFFERS_AVAILABLE, COMPLETED, CANCELLED
     target_members = Column(Integer, default=5, nullable=False)
     current_members_count = Column(Integer, default=1, nullable=False)
     target_purchase_timeline = Column(String(50), nullable=False) # WITHIN_15_DAYS, WITHIN_30_DAYS, WITHIN_60_DAYS
@@ -270,7 +294,7 @@ class GroupMember(Base):
     group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     buyer_notes = Column(Text, nullable=True)
-    status = Column(String(30), default="ACTIVE") # ACTIVE, QUALIFIED, WITHDRAWN, PURCHASED
+    status = Column(SQLEnumType("member_status_enum", "ACTIVE", "QUALIFIED", "WITHDRAWN", "PURCHASED"), default="ACTIVE") # ACTIVE, QUALIFIED, WITHDRAWN, PURCHASED
     intent_confirmed = Column(Boolean, default=True)
     intent_confirmed_at = Column(DateTime, default=utc_now)
     joined_at = Column(DateTime, default=utc_now)
@@ -330,7 +354,7 @@ class DealerGroupInvitation(Base):
     id = Column(GUID, primary_key=True, default=generate_uuid)
     group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
     dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
-    status = Column(String(30), default="INVITED") # INVITED, ACCEPTED, DECLINED, SUBMITTED
+    status = Column(SQLEnumType("invitation_status_enum", "INVITED", "ACCEPTED", "DECLINED", "SUBMITTED"), default="INVITED") # INVITED, ACCEPTED, DECLINED, SUBMITTED
     invited_at = Column(DateTime, default=utc_now)
 
     group = relationship("BuyingGroup", back_populates="invitations")
@@ -344,7 +368,7 @@ class Quotation(Base):
     group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="CASCADE"), nullable=False)
     dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
     revision_number = Column(Integer, default=1)
-    status = Column(String(30), default="SUBMITTED") # DRAFT, SUBMITTED, APPROVED, REJECTED, SUPERSEDED
+    status = Column(SQLEnumType("quotation_status_enum", "DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "SUPERSEDED"), default="SUBMITTED") # DRAFT, SUBMITTED, APPROVED, REJECTED, SUPERSEDED
     admin_review_notes = Column(Text, nullable=True)
     
     # Vehicle-Agnostic Pricing Engine Components
@@ -393,7 +417,7 @@ class QuotationLineItem(Base):
     id = Column(GUID, primary_key=True, default=generate_uuid)
     quotation_id = Column(GUID, ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
     item_name = Column(String(150), nullable=False)
-    item_type = Column(String(30), nullable=False) # MANDATORY, OPTIONAL, COMPLIMENTARY, DISCOUNT
+    item_type = Column(SQLEnumType("line_item_type_enum", "MANDATORY", "OPTIONAL", "COMPLIMENTARY", "DISCOUNT"), nullable=False) # MANDATORY, OPTIONAL, COMPLIMENTARY, DISCOUNT
     amount = Column(Numeric(12, 2), nullable=False)
 
     quotation = relationship("Quotation", back_populates="line_items")
@@ -408,7 +432,7 @@ class BuyerLead(Base):
     buyer_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     dealer_id = Column(GUID, ForeignKey("dealers.id", ondelete="CASCADE"), nullable=False)
     quotation_id = Column(GUID, ForeignKey("quotations.id", ondelete="CASCADE"), nullable=False)
-    status = Column(String(30), default="PENDING_CALLBACK") # PENDING_CALLBACK, CONTACTED, TEST_DRIVE_SCHEDULED, BOOKING_IN_PROGRESS, PURCHASE_COMPLETED, LOST
+    status = Column(SQLEnumType("lead_status_enum", "PENDING_CALLBACK", "CONTACTED", "TEST_DRIVE_SCHEDULED", "BOOKING_IN_PROGRESS", "PURCHASE_COMPLETED", "LOST"), default="PENDING_CALLBACK") # PENDING_CALLBACK, CONTACTED, TEST_DRIVE_SCHEDULED, BOOKING_IN_PROGRESS, PURCHASE_COMPLETED, LOST
     buyer_consent_given = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now)
@@ -444,7 +468,7 @@ class Complaint(Base):
     group_id = Column(GUID, ForeignKey("buying_groups.id", ondelete="SET NULL"), nullable=True)
     subject = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
-    status = Column(String(30), default="OPEN") # OPEN, INVESTIGATING, RESOLVED, DISMISSED
+    status = Column(SQLEnumType("complaint_status_enum", "OPEN", "INVESTIGATING", "RESOLVED", "DISMISSED"), default="OPEN") # OPEN, INVESTIGATING, RESOLVED, DISMISSED
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
