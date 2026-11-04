@@ -89,15 +89,18 @@ async def register_user(payload: UserRegister, db: AsyncSession = Depends(get_db
     await db.commit()
     await db.refresh(user)
 
-    token = create_access_token(subject=user.id, role=user.role)
+    token = create_access_token(subject=str(user.id), role=user.role)
 
     user_data = {
-        "id": user.id,
+        "id": str(user.id),
         "email": user.email,
         "phone": user.phone,
         "role": user.role,
         "full_name": payload.full_name,
-        "is_verified": user.is_verified
+        "is_active": user.is_active,
+        "is_verified": user.is_verified,
+        "city_id": payload.city_id,
+        "created_at": user.created_at.isoformat() if user.created_at else None
     }
 
     return TokenResponse(access_token=token, user=user_data)
@@ -124,18 +127,19 @@ async def login_user(payload: UserLogin, db: AsyncSession = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Account is deactivated")
 
-    token = create_access_token(subject=user.id, role=user.role)
+    token = create_access_token(subject=str(user.id), role=user.role)
 
     user_data = {
-        "id": user.id,
+        "id": str(user.id),
         "email": user.email,
         "phone": user.phone,
         "role": user.role,
         "full_name": user.profile.full_name if user.profile else user.email,
+        "is_active": user.is_active,
         "is_verified": user.is_verified,
-        "city_id": user.profile.city_id if user.profile else None,
+        "city_id": str(user.profile.city_id) if (user.profile and user.profile.city_id) else None,
         "dealer": {
-            "id": user.dealer.id,
+            "id": str(user.dealer.id),
             "dealership_name": user.dealer.dealership_name,
             "verification_status": user.dealer.verification_status
         } if user.dealer else None
@@ -146,7 +150,7 @@ async def login_user(payload: UserLogin, db: AsyncSession = Depends(get_db)):
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
     return {
-        "id": current_user.id,
+        "id": str(current_user.id),
         "email": current_user.email,
         "phone": current_user.phone,
         "role": current_user.role,
@@ -154,12 +158,12 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "is_verified": current_user.is_verified,
         "profile": {
             "full_name": current_user.profile.full_name if current_user.profile else "",
-            "city_id": current_user.profile.city_id if current_user.profile else None,
+            "city_id": str(current_user.profile.city_id) if (current_user.profile and current_user.profile.city_id) else None,
             "preferred_language": current_user.profile.preferred_language if current_user.profile else "en",
             "communication_consent": current_user.profile.communication_consent if current_user.profile else True
         } if current_user.profile else None,
         "dealer": {
-            "id": current_user.dealer.id,
+            "id": str(current_user.dealer.id),
             "dealership_name": current_user.dealer.dealership_name,
             "gstin": current_user.dealer.gstin,
             "verification_status": current_user.dealer.verification_status,

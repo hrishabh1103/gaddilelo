@@ -1,7 +1,13 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, List, Dict, Any
+import uuid
+from uuid import UUID
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, BeforeValidator
+from typing import Optional, List, Dict, Any, Annotated, Union
 from datetime import datetime
 from decimal import Decimal
+
+# Helper types to transparently coerce PostgreSQL UUID objects into strings across all ORM models
+PyId = Annotated[str, BeforeValidator(lambda v: str(v) if v is not None else v)]
+OptPyId = Annotated[Optional[str], BeforeValidator(lambda v: str(v) if v is not None else v)]
 
 # -----------------
 # 1. AUTH & USERS
@@ -49,12 +55,12 @@ class UserProfileUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     email: str
     phone: str
     role: str
-    is_active: bool
-    is_verified: bool
+    is_active: bool = True
+    is_verified: bool = True
     created_at: datetime
     profile: Optional[Dict[str, Any]] = None
     dealer: Optional[Dict[str, Any]] = None
@@ -64,12 +70,12 @@ class UserResponse(BaseModel):
 # -----------------
 class DealerResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    user_id: str
+    id: PyId
+    user_id: PyId
     dealership_name: str
     legal_entity_name: str
     gstin: str
-    city_id: str
+    city_id: PyId
     address: str
     authorized_brands: List[str]
     verification_status: str
@@ -95,7 +101,7 @@ class DealerDashboardStats(BaseModel):
 # -----------------
 class CityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     name: str
     state: str
     pincode_prefix: Optional[str] = None
@@ -103,8 +109,8 @@ class CityResponse(BaseModel):
 
 class VehicleVariantResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    model_id: str
+    id: PyId
+    model_id: PyId
     name: str
     fuel_type: str
     transmission: str
@@ -116,8 +122,8 @@ class VehicleVariantResponse(BaseModel):
 
 class VehicleModelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    brand_id: str
+    id: PyId
+    brand_id: PyId
     name: str
     slug: str
     body_type: str
@@ -130,15 +136,15 @@ class VehicleModelResponse(BaseModel):
 
 class VehicleBrandResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    category_id: str
+    id: PyId
+    category_id: PyId
     name: str
     slug: str
     logo_url: Optional[str] = None
 
 class VehicleCategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     slug: str
     name: str
     description: Optional[str] = None
@@ -179,11 +185,11 @@ class BuyingGroupCreate(BaseModel):
 
 class BuyingGroupResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     group_code: str
-    vehicle_variant_id: str
-    city_id: str
-    created_by_user_id: str
+    vehicle_variant_id: PyId
+    city_id: PyId
+    created_by_user_id: PyId
     status: str
     target_members: int
     current_members_count: int
@@ -262,9 +268,9 @@ class QuotationCreate(BaseModel):
 
 class QuotationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    group_id: str
-    dealer_id: str
+    id: PyId
+    group_id: PyId
+    dealer_id: PyId
     revision_number: int
     status: str
     admin_review_notes: Optional[str] = None
@@ -303,11 +309,11 @@ class BuyerLeadStatusUpdate(BaseModel):
 
 class BuyerLeadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    group_id: str
-    buyer_id: str
-    dealer_id: str
-    quotation_id: str
+    id: PyId
+    group_id: PyId
+    buyer_id: PyId
+    dealer_id: PyId
+    quotation_id: PyId
     status: str
     buyer_consent_given: bool
     notes: Optional[str] = None
@@ -335,7 +341,7 @@ class AdminOverviewStats(BaseModel):
 
 class NotificationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     title: str
     message: str
     event_type: str
@@ -345,11 +351,11 @@ class NotificationResponse(BaseModel):
 
 class AuditLogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    actor_user_id: Optional[str] = None
+    id: PyId
+    actor_user_id: OptPyId = None
     action: str
     entity_type: str
-    entity_id: str
+    entity_id: PyId
     payload: Dict[str, Any]
     created_at: datetime
 
@@ -401,7 +407,7 @@ class CustomerDiscoveryRequest(BaseModel):
 
 class VehicleDiscoveryJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     search_query: str
     job_type: str
     status: str
@@ -412,8 +418,8 @@ class VehicleDiscoveryJobResponse(BaseModel):
 
 class VehicleDiscoveryRecordResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    job_id: Optional[str] = None
+    id: PyId
+    job_id: OptPyId = None
     discovered_brand: str
     discovered_model: str
     category_slug: str
@@ -426,7 +432,7 @@ class VehicleDiscoveryRecordResponse(BaseModel):
     review_status: str
     primary_source_url: Optional[str] = None
     primary_source_name: Optional[str] = None
-    published_model_id: Optional[str] = None
+    published_model_id: OptPyId = None
     created_at: datetime
 
 class VehicleDiscoveryRecordDetail(VehicleDiscoveryRecordResponse):
@@ -466,7 +472,7 @@ class VehicleDataSourceUpdate(BaseModel):
 
 class VehicleDataSourceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: PyId
     source_name: str
     source_url: str
     source_type: str
@@ -489,8 +495,8 @@ class VehicleIntelligenceOverviewStats(BaseModel):
 
 class VehiclePriceHistoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    vehicle_variant_id: Optional[str] = None
+    id: PyId
+    vehicle_variant_id: OptPyId = None
     city_name: Optional[str] = None
     price_type: str
     amount: Decimal
@@ -502,8 +508,8 @@ class VehiclePriceHistoryResponse(BaseModel):
 
 class VehicleUpdateHistoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
-    vehicle_model_id: Optional[str] = None
+    id: PyId
+    vehicle_model_id: OptPyId = None
     model_name: Optional[str] = None
     change_type: str
     previous_data: Optional[Dict[str, Any]] = None

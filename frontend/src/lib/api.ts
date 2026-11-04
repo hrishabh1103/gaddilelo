@@ -8,36 +8,36 @@ export interface ApiResponse<T = any> {
 
 // Fallback catalog cache for maximum resiliency in case backend is initializing
 export const FALLBACK_CATEGORIES = [
-  { id: 'cat00000-0000-0000-0000-000000000001', slug: 'car', name: 'Passenger Cars', description: 'Hatchbacks, Sedans, Compact & Mid-size SUVs', icon_name: 'Car', display_order: 1 },
-  { id: 'cat00000-0000-0000-0000-000000000002', slug: 'electric-vehicle', name: 'Electric Vehicles', description: 'Electric Scooters, Electric Cars & Commercial EVs', icon_name: 'Zap', display_order: 2 },
-  { id: 'cat00000-0000-0000-0000-000000000003', slug: 'two-wheeler', name: 'Two-Wheelers', description: 'Commuter & Premium Motorcycles and Scooters', icon_name: 'Bike', display_order: 3 },
-  { id: 'cat00000-0000-0000-0000-000000000004', slug: 'commercial-vehicle', name: 'Commercial Vehicles', description: 'Pickups, Small Commercial Vehicles & Trucks', icon_name: 'Truck', display_order: 4 },
-  { id: 'cat00000-0000-0000-0000-000000000005', slug: 'three-wheeler', name: 'Three-Wheelers', description: 'Passenger & Cargo Auto-rickshaws', icon_name: 'Boxes', display_order: 5 }
+  { id: 'ca000000-0000-4000-8000-000000000001', slug: 'car', name: 'Passenger Cars', description: 'Hatchbacks, Sedans, Compact & Mid-size SUVs', icon_name: 'Car', display_order: 1 },
+  { id: 'ca000000-0000-4000-8000-000000000002', slug: 'electric-vehicle', name: 'Electric Vehicles', description: 'Electric Scooters, Electric Cars & Commercial EVs', icon_name: 'Zap', display_order: 2 },
+  { id: 'ca000000-0000-4000-8000-000000000003', slug: 'two-wheeler', name: 'Two-Wheelers', description: 'Commuter & Premium Motorcycles and Scooters', icon_name: 'Bike', display_order: 3 },
+  { id: 'ca000000-0000-4000-8000-000000000004', slug: 'commercial-vehicle', name: 'Commercial Vehicles', description: 'Pickups, Small Commercial Vehicles & Trucks', icon_name: 'Truck', display_order: 4 },
+  { id: 'ca000000-0000-4000-8000-000000000005', slug: 'three-wheeler', name: 'Three-Wheelers', description: 'Passenger & Cargo Auto-rickshaws', icon_name: 'Boxes', display_order: 5 }
 ];
 
 export const FALLBACK_CITIES = [
-  { id: 'c0000000-0000-0000-0000-000000000001', name: 'Indore', state: 'Madhya Pradesh', pincode_prefix: '452', is_active: true },
-  { id: 'c0000000-0000-0000-0000-000000000002', name: 'Bhopal', state: 'Madhya Pradesh', pincode_prefix: '462', is_active: true }
+  { id: 'c0000000-0000-4000-8000-000000000001', name: 'Indore', state: 'Madhya Pradesh', pincode_prefix: '452', is_active: true },
+  { id: 'c0000000-0000-4000-8000-000000000002', name: 'Bhopal', state: 'Madhya Pradesh', pincode_prefix: '462', is_active: true }
 ];
 
 export const FALLBACK_BRANDS = [
-  { id: 'b0000000-0000-0000-0000-000000000001', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Tata Motors', slug: 'tata-motors' },
-  { id: 'b0000000-0000-0000-0000-000000000002', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Maruti Suzuki', slug: 'maruti-suzuki' },
-  { id: 'b0000000-0000-0000-0000-000000000003', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Mahindra', slug: 'mahindra' },
-  { id: 'b0000000-0000-0000-0000-000000000004', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Hyundai', slug: 'hyundai' },
-  { id: 'b0000000-0000-0000-0000-000000000005', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Kia', slug: 'kia' },
-  { id: 'b0000000-0000-0000-0000-000000000006', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Toyota', slug: 'toyota' },
-  { id: 'b0000000-0000-0000-0000-000000000012', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Honda', slug: 'honda' },
-  { id: 'b0000000-0000-0000-0000-000000000013', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Skoda', slug: 'skoda' },
-  { id: 'b0000000-0000-0000-0000-000000000014', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Volkswagen', slug: 'volkswagen' },
-  { id: 'b0000000-0000-0000-0000-000000000015', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'MG Motor', slug: 'mg' },
-  { id: 'b0000000-0000-0000-0000-000000000016', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Renault', slug: 'renault' },
-  { id: 'b0000000-0000-0000-0000-000000000017', category_id: 'cat00000-0000-0000-0000-000000000001', name: 'Nissan', slug: 'nissan' },
-  { id: 'b0000000-0000-0000-0000-000000000007', category_id: 'cat00000-0000-0000-0000-000000000002', name: 'Ather Energy', slug: 'ather-energy' },
-  { id: 'b0000000-0000-0000-0000-000000000008', category_id: 'cat00000-0000-0000-0000-000000000002', name: 'Ola Electric', slug: 'ola-electric' },
-  { id: 'b0000000-0000-0000-0000-000000000009', category_id: 'cat00000-0000-0000-0000-000000000003', name: 'Royal Enfield', slug: 'royal-enfield' },
-  { id: 'b0000000-0000-0000-0000-000000000010', category_id: 'cat00000-0000-0000-0000-000000000003', name: 'TVS Motor', slug: 'tvs-motor' },
-  { id: 'b0000000-0000-0000-0000-000000000011', category_id: 'cat00000-0000-0000-0000-000000000004', name: 'Ashok Leyland', slug: 'ashok-leyland' }
+  { id: 'b0000000-0000-4000-8000-000000000001', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Tata Motors', slug: 'tata-motors' },
+  { id: 'b0000000-0000-4000-8000-000000000002', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Maruti Suzuki', slug: 'maruti-suzuki' },
+  { id: 'b0000000-0000-4000-8000-000000000003', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Mahindra', slug: 'mahindra' },
+  { id: 'b0000000-0000-4000-8000-000000000004', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Hyundai', slug: 'hyundai' },
+  { id: 'b0000000-0000-4000-8000-000000000005', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Kia', slug: 'kia' },
+  { id: 'b0000000-0000-4000-8000-000000000006', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Toyota', slug: 'toyota' },
+  { id: 'b0000000-0000-4000-8000-000000000012', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Honda', slug: 'honda' },
+  { id: 'b0000000-0000-4000-8000-000000000013', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Skoda', slug: 'skoda' },
+  { id: 'b0000000-0000-4000-8000-000000000014', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Volkswagen', slug: 'volkswagen' },
+  { id: 'b0000000-0000-4000-8000-000000000015', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'MG Motor', slug: 'mg' },
+  { id: 'b0000000-0000-4000-8000-000000000016', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Renault', slug: 'renault' },
+  { id: 'b0000000-0000-4000-8000-000000000017', category_id: 'ca000000-0000-4000-8000-000000000001', name: 'Nissan', slug: 'nissan' },
+  { id: 'b0000000-0000-4000-8000-000000000007', category_id: 'ca000000-0000-4000-8000-000000000002', name: 'Ather Energy', slug: 'ather-energy' },
+  { id: 'b0000000-0000-4000-8000-000000000008', category_id: 'ca000000-0000-4000-8000-000000000002', name: 'Ola Electric', slug: 'ola-electric' },
+  { id: 'b0000000-0000-4000-8000-000000000009', category_id: 'ca000000-0000-4000-8000-000000000003', name: 'Royal Enfield', slug: 'royal-enfield' },
+  { id: 'b0000000-0000-4000-8000-000000000010', category_id: 'ca000000-0000-4000-8000-000000000003', name: 'TVS Motor', slug: 'tvs-motor' },
+  { id: 'b0000000-0000-4000-8000-000000000011', category_id: 'ca000000-0000-4000-8000-000000000004', name: 'Ashok Leyland', slug: 'ashok-leyland' }
 ];
 
 export const FALLBACK_MODELS = [

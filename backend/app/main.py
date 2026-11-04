@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+import logging
+from fastapi import FastAPI, Depends, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from backend.app.core.config import settings
@@ -79,6 +81,25 @@ else:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+logger = logging.getLogger("gaadilelo.api")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        headers["Access-Control-Allow-Headers"] = "*"
+        headers["Access-Control-Allow-Methods"] = "*"
+
+    logger.error(f"UNHANDLED EXCEPTION on {request.method} {request.url}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "message": str(exc)},
+        headers=headers,
     )
 
 # Register API v1 Routers
